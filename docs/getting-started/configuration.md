@@ -28,7 +28,7 @@ The `.env` parser automatically converts these special values:
 
 ### Common Variables
 
-```env
+```
 # Application
 APP_ENV=local           # local, production, staging
 APP_DEBUG=true

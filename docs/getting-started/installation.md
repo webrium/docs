@@ -70,7 +70,7 @@ cp .env.example .env
 
 Edit `.env` with your database and app settings:
 
-```env
+```
 APP_ENV=local
 APP_DEBUG=true
 APP_URL=http://localhost:8000
