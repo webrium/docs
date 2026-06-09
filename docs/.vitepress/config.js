@@ -5,6 +5,14 @@ export default defineConfig({
   description: 'Fast, Lightweight PHP Framework for Modern Web Applications',
   lang: 'en-US',
 
+  vue: {
+    template: {
+      compilerOptions: {
+        isCustomElement: (tag) => tag.startsWith('w-'),
+      },
+    },
+  },
+
   head: [
     ['link', { rel: 'icon', href: '/favicon.ico' }],
     ['meta', { name: 'theme-color', content: '#3b82f6' }],
@@ -48,7 +56,6 @@ export default defineConfig({
           ]
         }
       ],
-
       '/core/': [
         {
           text: 'Core',
@@ -95,7 +102,6 @@ export default defineConfig({
           ]
         }
       ],
-
       '/database/': [
         {
           text: 'FoxDB',
@@ -108,7 +114,6 @@ export default defineConfig({
           ]
         }
       ],
-
       '/packages/': [
         {
           text: 'Packages',
@@ -126,27 +131,34 @@ export default defineConfig({
       pattern: 'https://github.com/webrium/webrium/edit/main/docs/:path',
       text: 'Edit this page on GitHub'
     },
-
     socialLinks: [
       { icon: 'github', link: 'https://github.com/webrium/webrium' }
     ],
-
     footer: {
       message: 'Released under the MIT License.',
       copyright: 'Copyright © Webrium'
     },
-
-    search: {
-      provider: 'local'
-    },
-
-    outline: {
-      level: [2, 3],
-      label: 'On this page'
-    }
+    search: { provider: 'local' },
+    outline: { level: [2, 3], label: 'On this page' }
   },
 
   markdown: {
-    lineNumbers: true
+    lineNumbers: true,
+    config: (md) => {
+      // Escape {{ and }} in fenced code blocks so Vue compiler ignores them
+      const originalFence = md.renderer.rules.fence.bind(md.renderer.rules)
+      md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+        return originalFence(tokens, idx, options, env, self)
+          .replace(/\{\{/g, '&#123;&#123;')
+          .replace(/\}\}/g, '&#125;&#125;')
+      }
+      // Escape {{ and }} in inline code spans (`...`)
+      const originalCodeInline = md.renderer.rules.code_inline.bind(md.renderer.rules)
+      md.renderer.rules.code_inline = (tokens, idx, options, env, self) => {
+        return originalCodeInline(tokens, idx, options, env, self)
+          .replace(/\{\{/g, '&#123;&#123;')
+          .replace(/\}\}/g, '&#125;&#125;')
+      }
+    }
   }
 })
