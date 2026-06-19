@@ -53,7 +53,7 @@ $token = $jwt->generateToken(['user_id' => 1, 'role' => 'admin'], 900);
 $token = $jwt->generateToken(['user_id' => 1]);
 ```
 
-An `iat` (issued-at) claim is added automatically so you always know when a token was created. When you pass a lifetime, an `exp` (expiration) claim is set for you. Choose a lifetime that fits the token's purpose — short for access tokens, longer for tokens that are harder to reissue.
+An `iat` (issued-at) claim is added automatically so you always know when a token was created. When you pass a lifetime, an `exp` (expiration) claim is set for you. Any `iat` or `exp` already present in your payload is overwritten. Choose a lifetime that fits the token's purpose — short for access tokens, longer for tokens that are harder to reissue.
 
 The payload is yours to shape. Store whatever your application needs to identify the request, but keep it small and avoid putting sensitive data in it, since the payload is readable by anyone holding the token.
 
@@ -151,15 +151,15 @@ class AuthMiddleware
             return false;
         }
 
-        // the authenticated user is available to the request
-        request()->setUser($payload['user_id']);
+        // the token is valid; its claims can now be used to load the user
+        $userId = $payload['user_id'];
 
         return true;
     }
 }
 ```
 
-Because `verifyToken()` already enforces expiration, the middleware only needs to check that a payload came back.
+Because `verifyToken()` already enforces expiration, the middleware only needs to check that a payload came back. `Header::getBearerToken()` returns the token from the `Authorization: Bearer ...` header, or `null` when it is absent.
 
 ## Error Handling
 

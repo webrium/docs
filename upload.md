@@ -19,7 +19,7 @@ if ($upload === null) {
 $savedName = $upload
     ->allowExtension(['jpg', 'png', 'webp'])
     ->maxMB(5)
-    ->to('/var/www/uploads/avatars')
+    ->to(public_path('uploads/avatars'))
     ->useRandomName()
     ->save();
 
@@ -55,7 +55,7 @@ $one = Upload::fromInput('avatar');
 // Multiple files
 $many = Upload::fromInput('photos'); // array<Upload> or null
 foreach ($many ?? [] as $file) {
-    $file->allowExtension(['jpg', 'png'])->to('/uploads')->save();
+    $file->allowExtension(['jpg', 'png'])->to(public_path('uploads'))->save();
 }
 ```
 
@@ -95,10 +95,10 @@ $upload->allowMimeType(['image/jpeg', 'image/png']);
 
 ### `to(string $path): self`
 
-Sets the destination directory. The directory is created (recursively, mode `0755`) on `save()` if it does not exist.
+Sets the destination directory. The directory is created (recursively, mode `0755`) on `save()` if it does not exist. Prefer the path helpers over hard-coded absolute paths — `public_path()` for web-accessible uploads, `storage_path()` for files that should stay outside the document root.
 
 ```php
-$upload->to('/var/www/uploads/avatars');
+$upload->to(public_path('uploads/avatars'));
 ```
 
 ### `asName(string $name): self`
@@ -111,7 +111,7 @@ $upload->asName('profile-picture'); // -> profile-picture.<real-ext>
 
 ### `useRandomName(): self`
 
-Replaces the file name with a cryptographically random hex string, keeping the real extension. Recommended for user uploads to avoid name collisions and information disclosure.
+Replaces the file name with a random 32-character hex string (16 random bytes), keeping the real extension. Recommended for user uploads to avoid name collisions and information disclosure.
 
 ```php
 $upload->useRandomName(); // -> 3f8a...c1.png
@@ -169,16 +169,20 @@ Checks are applied in this order:
 7. The real MIME type is consistent with the extension (if an allow-list is set and consistency is enforced).
 8. The real MIME type is in the allowed MIME list (if one is set).
 
+> The first four checks **stop validation immediately** on failure — a bad upload error code, a non-genuine temp file, an empty file, or a dangerous extension each returns at once with a single error. The remaining checks (size, allow-list, MIME consistency, MIME allow-list) **accumulate** their errors, so a single failed `save()` can report several of them together through `getErrors()`.
+
 ### `save(bool $throwOnError = false): bool|string`
 
 Validates and moves the file to the destination. Returns the **final file name** on success, or `false` on failure. Pass `true` to throw an `Exception` instead of returning `false`.
 
+`save()` also fails (or throws) if no destination was set with `to()`, if the destination directory cannot be created, or if it is not writable.
+
 ```php
-$name = $upload->to('/uploads')->allowExtension(['png'])->save();
+$name = $upload->to(public_path('uploads'))->allowExtension(['png'])->save();
 
 // Exception style
 try {
-    $name = $upload->to('/uploads')->allowExtension(['png'])->save(true);
+    $name = $upload->to(public_path('uploads'))->allowExtension(['png'])->save(true);
 } catch (\Exception $e) {
     // handle $e->getMessage()
 }
@@ -207,13 +211,13 @@ On success the file is written with permission `0644`.
 
 **Content-based type detection.** The real MIME type is read from the file's bytes with `finfo`, never from the browser-supplied `type`. A request can claim `image/jpeg` while carrying PHP code; that lie is ignored.
 
-**Extension/MIME consistency (anti-spoofing).** When an extension allow-list is active, the detected MIME type must match the claimed extension. A PHP web shell renamed to `evil.jpg`, or a real PNG renamed to `photo.jpg`, is rejected. This is the primary defence and is enabled by default.
+**Extension/MIME consistency (anti-spoofing).** When an extension allow-list is active, the detected MIME type must match the claimed extension. A PHP web shell renamed to `evil.jpg`, or a real PNG renamed to `photo.jpg`, is rejected. This is the primary defence and is enabled by default. (If the extension passes the allow-list but is not in `MimeMap`, the content cross-check is skipped — the allow-list decision and any `allowMimeType()` rule still apply.)
 
 **Dangerous-extension blacklist.** Extensions that a server can execute or that run in a browser (`php`, `phtml`, `phar`, `asp`, `jsp`, `exe`, `sh`, `bat`, `svg`, `html`, `js`, `htaccess`, and more) are blocked outright — even if a developer mistakenly adds them to the allow-list. SVG is included because it can carry inline JavaScript.
 
 **Genuine-upload check.** Only files actually delivered by PHP's upload handler (`is_uploaded_file` / `move_uploaded_file`) are accepted, preventing local-file-path injection.
 
-**File-name sanitization.** Saved names are stripped of directory components, null bytes, and control characters; reduced to `[A-Za-z0-9.\-_]`; collapsed to prevent double extensions (`file.php.jpg` → `file-php.jpg`); and cleared of leading dots (hidden files) and trailing dots/spaces (a Windows trick that can re-expose an extension). A random hex name is used as a fallback.
+**File-name sanitization.** Saved names are stripped of directory components, null bytes, and control characters; reduced to `[A-Za-z0-9.\-_]`; collapsed to prevent double extensions (`file.php.jpg` → `file-php.jpg`); and cleared of leading dots (hidden files) and trailing dots/spaces (a Windows trick that can re-expose an extension). A random hex name is used as a fallback when nothing safe remains. Names longer than 255 characters are truncated while keeping the extension.
 
 **Empty-file rejection** and **collision-safe naming** round out the defaults.
 
@@ -232,7 +236,7 @@ foreach ($files ?? [] as $file) {
     $name = $file
         ->allowExtension(['pdf', 'docx'])
         ->maxMB(25)
-        ->to(__DIR__ . '/storage/docs')
+        ->to(storage_path('docs'))
         ->useRandomName()
         ->save();
 
@@ -251,7 +255,7 @@ foreach ($files ?? [] as $file) {
 
 `Webrium\Helpers\UploadHelper` is a thin convenience layer over `Upload`. Instead of manually listing the correct extensions, MIME types, and a sensible size cap for a category such as "images", you call one factory method and receive a fully configured `Upload` instance.
 
-It contains **no security logic of its own** — it only wires up the same `Upload` validation any manual caller would use, drawing its extension and MIME data from a single source (`Webrium\Helpers\MimeMap`). The MIME-consistency check and dangerous-extension blacklist stay enabled on everything it produces.
+It contains **no security logic of its own** — it only wires up the same `Upload` validation any manual caller would use, drawing its extension data from a single source (`Webrium\Helpers\MimeMap`). The MIME-consistency check and dangerous-extension blacklist stay enabled on everything it produces.
 
 ## Factory methods
 
@@ -265,6 +269,8 @@ Each factory takes the input field name and returns an `Upload`, an array of `Up
 | `UploadHelper::pdf($input)` | PDF only | 20 MB |
 | `UploadHelper::document($input)` | Documents | 25 MB |
 | `UploadHelper::archive($input)` | Archives | 100 MB |
+
+Each factory applies the category's extension list, the size cap above, and `enforceMimeConsistency(true)`.
 
 ### Allowed extensions per category
 
@@ -285,7 +291,7 @@ Each factory takes the input field name and returns an `Upload`, an array of `Up
 use Webrium\Helpers\UploadHelper;
 
 $name = UploadHelper::image('avatar')
-    ->to('/var/www/uploads/avatars')
+    ->to(public_path('uploads/avatars'))
     ->useRandomName()
     ->save();
 ```
@@ -296,13 +302,13 @@ Because each factory returns a normal `Upload`, the fluent API is still availabl
 // Raise the default 200 MB video cap to 500 MB
 UploadHelper::video('clip')
     ->maxMB(500)
-    ->to('/clips')
+    ->to(public_path('uploads/clips'))
     ->save();
 
 // Narrow the image extensions to just PNG
 UploadHelper::image('logo')
     ->allowExtension(['png'])
-    ->to('/logos')
+    ->to(public_path('uploads/logos'))
     ->save();
 ```
 
@@ -312,7 +318,7 @@ Multiple-file inputs return an array, with each instance independently configure
 $gallery = UploadHelper::image('gallery'); // array<Upload>|null
 
 foreach ($gallery ?? [] as $image) {
-    $image->to('/uploads/gallery')->useRandomName()->save();
+    $image->to(public_path('uploads/gallery'))->useRandomName()->save();
 }
 ```
 

@@ -29,6 +29,22 @@ Hash::argon2i($password);
 Hash::argon2id($password);
 ```
 
+Each shortcut also accepts tuning parameters. `bcrypt()` takes a `$cost` (default 10), while `argon2i()` and `argon2id()` take `$memoryCost` (KiB), `$timeCost`, and `$threads`:
+
+```php
+Hash::bcrypt($password, 12);
+Hash::argon2id($password, 65536, 4, 1);
+```
+
+### Inspecting a Hash
+
+You can read back the algorithm and parameters baked into a stored hash:
+
+```php
+Hash::info($hash);          // ['algo' => ..., 'algoName' => 'bcrypt', 'options' => [...]]
+Hash::getAlgorithm($hash);  // 'bcrypt', 'argon2i', 'argon2id', or null
+```
+
 ### Rehashing on Login
 
 If your application's hashing settings change over time (e.g. increasing bcrypt cost), use `checkAndRehash()` to verify and get a new hash in one step:
@@ -62,7 +78,9 @@ Hash::unique('user_'); // unique hash derived from prefix + time + random bytes
 Hash::uuid();          // RFC 4122 UUID v4
 ```
 
-`random()` and `token()` draw from a cryptographically secure source and return exactly the requested number of hexadecimal characters, for any positive length. They are well suited to password reset tokens, API keys, file names, and similar identifiers.
+`random()` and `token()` draw from a cryptographically secure source and return exactly the requested number of hexadecimal characters, for any positive length. They are well suited to password reset tokens, API keys, file names, and similar identifiers. Both throw an `InvalidArgumentException` if the requested length is not a positive integer.
+
+`unique()` returns a fixed-length digest (sha256 by default) computed from the prefix, the current time, and random bytes; you may pass a different algorithm as the second argument. The prefix is mixed into the hash, not prepended to the output.
 
 ## Hashing Data
 
@@ -83,12 +101,20 @@ Hash::isAlgorithmSupported('sha256');   // bool
 
 `Hash::md5()` and `Hash::sha1()` are also available, but only for checksums and non-security identifiers. Use SHA-256 or stronger when integrity matters, `make()` for passwords, and `hmac()` for signatures.
 
+```php
+Hash::md5($data);
+Hash::sha1($data);
+Hash::md5($data, true); // raw binary output
+```
+
 ### File Hashing
 
 ```php
 Hash::file($path);              // sha256 of file contents
 Hash::file($path, 'md5');
 ```
+
+`file()` returns `false` if the path does not exist.
 
 ## HMAC
 

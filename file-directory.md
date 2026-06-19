@@ -83,7 +83,7 @@ File::append('/tmp/out.txt', "second line\n");
 File::prepend('/tmp/out.txt', "header\n");
 ```
 
-> `prepend()` reads the whole file into memory and rewrites it under `LOCK_EX`. For very large files prefer a streaming approach.
+> `prepend()` reads the whole file into memory and rewrites it under `LOCK_EX`. For very large files prefer a streaming approach. If the file does not exist yet, it is created with the given content.
 
 ## Copy, move, delete
 
@@ -118,6 +118,8 @@ $all   = File::getFilesRecursive('/uploads');        // ['/uploads/2024/a.jpg', 
 $imgs  = File::glob('/uploads/*.jpg');
 ```
 
+> `getFiles()` returns the entry **names** directly inside the directory (both files and sub-directory names), while `getFilesRecursive()` walks the tree and returns the **full paths** of files only.
+
 > `makeDirectory()` also exists but is **deprecated** — use `Directory::make()` instead.
 
 ## Serving files over HTTP
@@ -126,7 +128,7 @@ These methods send headers and file content directly to the client, then call `e
 
 ### `stream(string $filePath, ?string $downloadName = null): void`
 
-Streams a file inline with HTTP range support — ideal for video and audio, since it lets the browser seek. Responds with `206 Partial Content` for range requests and `416` for invalid ranges. The download name is sanitized for the `Content-Disposition` header.
+Streams a file inline with HTTP range support — ideal for video and audio, since it lets the browser seek. Responds with `206 Partial Content` for range requests and `416` for invalid ranges. A missing file returns `404`. The download name is sanitized for the `Content-Disposition` header.
 
 ```php
 File::stream('/media/lecture.mp4');
@@ -134,7 +136,7 @@ File::stream('/media/lecture.mp4');
 
 ### `download(string $filePath, ?string $downloadName = null): void`
 
-Sends the file as an attachment (forces a download dialog) with the correct length and MIME type. The download name is sanitized to prevent header injection.
+Sends the file as an attachment (forces a download dialog) with the correct length and MIME type. A missing file returns `404`. The download name is sanitized to prevent header injection.
 
 ```php
 File::download('/invoices/2024-01.pdf', 'invoice.pdf');
@@ -148,7 +150,7 @@ Serves an image inline. It first verifies the file's **real** MIME type begins w
 File::showImage('/uploads/avatars/user_42.png');
 ```
 
-> All three methods sanitize the outgoing filename (stripping path separators, null bytes, and control characters) before writing the `Content-Disposition` header.
+> `stream()` and `download()` sanitize the outgoing filename (stripping path separators, null bytes, and control characters, and escaping quotes) before writing the `Content-Disposition` header. `showImage()` serves inline without a `Content-Disposition` filename.
 
 ## Hashing
 
@@ -201,7 +203,7 @@ Most methods accept either a registered **name** or, where noted, an absolute pa
 use Webrium\Directory;
 
 Directory::set('uploads', 'public/uploads');
-Directory::set('logs', 'storage/Logs');
+Directory::set('logs', 'storage/logs');
 
 Directory::path('uploads');                 // /var/www/app/public/uploads
 Directory::path('uploads', 'avatars/42.png'); // .../public/uploads/avatars/42.png
@@ -213,7 +215,7 @@ Directory::path('uploads', 'avatars/42.png'); // .../public/uploads/avatars/42.p
 
 ### `initDefaultStructure(): void`
 
-Registers a complete conventional layout in one call — application directories (`app`, `controllers`, `models`, `views`, `routes`, `config`, `middleware`, `helpers`, `services`), storage (`storage`, `sessions`, `cache`, rendered/static views), `logs`, `langs`, and public directories (`public`, `assets`, `uploads`).
+Registers a complete conventional layout in one call — application directories (`app`, `controllers`, `models`, `views`, `routes`, `config`, `middleware`, `helpers`, `services`), storage (`storage`, `storage_app`, `sessions`, `cache`, rendered/static views), `logs`, `langs`, and public directories (`public`, `assets`, `uploads`). Application sub-paths follow PSR-4 PascalCase (e.g. `app/Controllers`, `app/Models`).
 
 ```php
 Directory::initDefaultStructure();
@@ -261,7 +263,7 @@ if (!Directory::validate()) {
 | `fileCount(string $name, bool $recursive = false)` | Number of files (optionally recursive), or `false` |
 | `stats(string $name)` | Rich stats array, or `false` |
 
-`stats()` returns: `path`, `exists`, `readable`, `writable`, `files`, `directories`, `total_items`, `size_bytes`, `size_human`, and `permissions`.
+`stats()` returns: `path`, `exists`, `readable`, `writable`, `files`, `directories`, `total_items`, `size_bytes`, `size_human`, and `permissions` (the last as a four-digit octal string such as `"0755"`).
 
 ```php
 Directory::humanSize('uploads');     // "12.4 MB"
@@ -275,8 +277,8 @@ $info = Directory::stats('uploads');
 
 | Method | Description |
 | --- | --- |
-| `copy(string $source, string $destination, bool $overwrite = false): bool` | Recursively copy a directory (source by name or path) |
-| `delete(string $name): bool` | Recursively delete a directory and its contents |
+| `copy(string $source, string $destination, bool $overwrite = false): bool` | Recursively copy a directory (source by name or path; destination is an absolute path) |
+| `delete(string $name): bool` | Recursively delete a directory and its contents (by name or absolute path) |
 | `empty(string $name): bool` | Delete the contents but keep the directory itself |
 
 ```php
