@@ -33,13 +33,15 @@ All four return `true` if the file existed and was loaded, or `false` otherwise.
 
 ### `source()`
 
-Loads multiple files from a registered directory alias:
+Loads multiple PHP files from a registered directory alias in one call. It is used during application bootstrap to pull in configuration files (or any other PHP file that needs to be executed at boot time) — not for route files, which have their own dedicated `Route::source()` method.
+
+For example, the default application skeleton uses it in `public/index.php` to load the database configuration:
 
 ```php
-Kernel::source('routes', ['web.php', 'api.php']);
+Kernel::source('config', ['DB.php']);
 ```
 
-It returns the number of files that were successfully included. Internally, `Route::source()` is a thin wrapper around this method.
+It returns the number of files that were successfully included.
 
 ## Controller Dispatch: `executeControllerMethod()`
 

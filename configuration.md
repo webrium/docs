@@ -1,127 +1,42 @@
 # Configuration
-## Environment Variables
 
-Webrium uses a `.env` file at the root of your project to store environment-specific configuration — values that typically differ between local development, staging, and production, such as database credentials and debug settings.
+Webrium keeps day-to-day configuration in a single `.env` file at the project root. Everything else — the error handler, view engine, sessions, locale, CORS — is wired up once in `public/index.php` with sensible defaults, so you only touch those subsystems when you actually want to change their behaviour.
 
-A typical `.env` file looks like:
+## The `.env` File
 
-```env
-APP_NAME=Webrium
-APP_ENV=local
-APP_DEBUG=true
-APP_URL=http://localhost:8000
+A fresh project ships with a small `.env.example`:
 
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=webrium
-DB_USERNAME=root
-DB_PASSWORD=
+```ini
+DB_HOST = localhost
+DB_PORT = 3306
+DB_DATABASE = test
+DB_USERNAME = root
+DB_PASSWORD = 1234
+
+APP_DEBUG = true
+APP_LOG_ERRORS = true
 ```
 
-`.env` is excluded from version control. A `.env.example` file should be committed instead, containing the same keys with placeholder or default values, so other developers know what variables are required.
+The installer copies this file to `.env` the first time you create a project. Edit it for your environment, and add any application-specific variables (mail credentials, API keys, feature flags) below — there is no fixed schema.
 
-## Reading Environment Variables
+`.env` is excluded from version control. Commit `.env.example` instead, with placeholder values, so collaborators know which variables to define.
 
-Use the `env()` helper to read values from `.env`:
+## Reading Values: `env()`
 
-```php
-$dbHost = env('DB_HOST', '127.0.0.1');
-```
-
-The second argument is a default value, returned if the key is not set.
+Read values from `.env` anywhere in your application with the `env()` helper:
 
 ```php
+$dbHost = env('DB_HOST', 'localhost');
+
 if (env('APP_DEBUG', false)) {
     // debug-only logic
 }
 ```
 
-## Debug Configuration
+The second argument is the default returned if the key is missing. `env()` returns `null` when no default is given. Common string values are converted to PHP equivalents: `"true"` and `"false"` become booleans, `"null"` becomes `null`, and empty values become `null`.
 
-Webrium's `Debug` class controls how errors are displayed, logged, and formatted. By default, errors are displayed and logging is enabled.
+## Everything Else
 
-```php
-use Webrium\Debug;
+The rest of Webrium's configuration — error display and logging, the view engine, session storage, locale, directory layout, CORS — is bootstrapped in `public/index.php` with reasonable defaults. You normally do not need to change it.
 
-Debug::enableErrorDisplay(true);   // show errors in the response
-Debug::enableErrorLogging(true);   // write errors to storage/logs
-Debug::setLogPath(storage_path('logs/app.log'));
-```
-
-### JSON Error Responses for APIs
-
-If you're building an API, you may want errors returned as JSON instead of HTML:
-
-```php
-Debug::forceJsonResponse(true);
-```
-
-> **Note:** Any `Debug` configuration must be set **before** `App::initialize()` is called.
-
-### Recommended Setup
-
-```php
-use Webrium\Debug;
-use Webrium\App;
-
-if (env('APP_DEBUG', false)) {
-    Debug::enableErrorDisplay(true);
-} else {
-    Debug::enableErrorDisplay(false);
-    Debug::enableErrorLogging(true);
-}
-
-App::initialize(__DIR__ . '/..');
-```
-
-## Application Locale
-
-Webrium supports translation strings via `lang()` / `trans()`, backed by files in `storage/langs/{locale}/`.
-
-```php
-use Webrium\App;
-
-App::setLocale('en');
-```
-
-```php
-// storage/langs/en/messages.php
-return [
-    'welcome' => 'Welcome to Webrium',
-];
-```
-
-```php
-echo lang('messages.welcome'); // "Welcome to Webrium"
-```
-
-## CORS
-
-If your application serves as an API consumed by a separate frontend, you can enable CORS via the `App` class:
-
-```php
-use Webrium\App;
-
-App::enableCors(['https://example.com'], [
-    'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE'],
-    'allowed_headers' => ['Content-Type', 'Authorization'],
-]);
-```
-
-The first argument is a list of allowed origins (or a single origin as a string). If omitted, it defaults to the application's own domain. The second argument accepts additional configuration:
-
-| Key | Default |
-|---|---|
-| `allowed_methods` | `['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']` |
-| `allowed_headers` | `['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']` |
-| `allow_credentials` | `false` |
-| `max_age` | `86400` |
-| `expose_headers` | `[]` |
-
-> **Note:** CORS configuration should be set before `App::run()` is called, ideally right after `App::initialize()`. `enableCors()` also handles `OPTIONS` preflight requests automatically and will terminate the request for them.
-
-## Next Steps
-
-- [Routing](../routing/01-basic-routing.md)
-- [Helper Functions Reference](../reference/helpers.md)
+When you do, edit `public/index.php` directly and consult the chapter for the subsystem you are configuring: **Error Handling & Debugging**, **Localization**, **Sessions**, **File & Directory**, or the **CORS** section in **Requests & Responses**.
