@@ -1,5 +1,6 @@
 # JSON Web Tokens (JWT)
-The `Jwt` class issues and verifies signed JSON Web Tokens. It is the standard way to implement stateless authentication in Webrium: a token is signed when a user logs in, sent back on every request, and verified on the server without needing to store session state.
+
+Webrium's `Jwt` class issues and verifies signed JSON Web Tokens. It is the standard way to implement stateless authentication in the framework: a token is signed when a user logs in, sent back on every request, and verified on the server without needing to store session state.
 
 A token carries a **payload** of claims (such as the user's ID), a **header** describing how it was signed, and a **signature** that proves the payload has not been altered. Webrium signs tokens with HMAC-SHA and verifies both the signature and the standard time-based claims for you.
 
@@ -176,9 +177,3 @@ try {
 ```
 
 Verification never throws for an untrusted token. Any token that fails a check — bad signature, wrong format, expired, or not yet valid — simply returns `null`, so request handling stays on a single code path.
-
-## Next Steps
-
-- [Hashing](./02-hashing.md) — password hashing, HMACs, tokens, and UUIDs
-- [Middleware](../routing/02-middleware.md) — protecting routes with JWT-based auth
-- [Validation](./01-validation.md)

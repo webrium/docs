@@ -1,11 +1,12 @@
 # Upload
-`Webrium\Upload` is a secure file-upload handler with a fluent API. It reads files from `$_FILES`, validates them against size, extension, and MIME-type rules, and moves them safely to a destination directory.
+
+Webrium's `Upload` is a secure file-upload handler with a fluent API. It reads files from `$_FILES`, validates them against size, extension, and MIME-type rules, and moves them safely to a destination directory.
 
 Its design goal is to be **safe by default**: it detects the real content type of every file, refuses to trust the extension alone, blocks files that could be executed by a web server, and sanitizes file names against traversal and spoofing tricks.
 
 ---
 
-## Quick start
+## Quick Start
 
 ```php
 use Webrium\Upload;
@@ -32,7 +33,7 @@ if ($savedName === false) {
 
 ---
 
-## Creating an instance
+## Creating an Instance
 
 `Upload` has no public constructor. Instances are created from a file input field through `fromInput()`.
 
@@ -61,7 +62,7 @@ foreach ($many ?? [] as $file) {
 
 ---
 
-## Configuration methods
+## Configuration Methods
 
 All configuration methods return `$this`, so they can be chained in any order before calling `save()`.
 
@@ -83,7 +84,7 @@ $upload->allowExtension(['jpg', 'png']);
 $upload->allowExtension('jpg, png, webp');
 ```
 
-> When an extension allow-list is set, the **MIME consistency check** is also enforced by default (see [Security model](#security-model)).
+> When an extension allow-list is set, the **MIME consistency check** is also enforced by default (see [Security Model](#security-model)).
 
 ### `allowMimeType(array|string $types): self`
 
@@ -122,8 +123,8 @@ $upload->useRandomName(); // -> 3f8a...c1.png
 By default, if a file with the same name already exists, a numeric suffix is appended (`photo.png` → `photo-1.png`). Call `allowOverwrite(true)` to overwrite instead.
 
 ```php
-$upload->allowOverwrite();       // overwrite existing files
-$upload->allowOverwrite(false);  // keep default: never overwrite
+$upload->allowOverwrite();      // overwrite existing files
+$upload->allowOverwrite(false); // keep default: never overwrite
 ```
 
 ### `enforceMimeConsistency(bool $enforce = true): self`
@@ -152,7 +153,7 @@ $upload->disallowEmpty(false);
 
 ---
 
-## Action methods
+## Action Methods
 
 ### `validate(): bool`
 
@@ -192,7 +193,7 @@ On success the file is written with permission `0644`.
 
 ---
 
-## Getter methods
+## Getter Methods
 
 | Method | Returns |
 | --- | --- |
@@ -205,7 +206,7 @@ On success the file is written with permission `0644`.
 
 ---
 
-## Security model
+## Security Model
 
 `Upload` defends against the common file-upload attack classes:
 
@@ -225,7 +226,7 @@ On success the file is written with permission `0644`.
 
 ---
 
-## Full example
+## Full Example
 
 ```php
 use Webrium\Upload;
@@ -257,7 +258,7 @@ foreach ($files ?? [] as $file) {
 
 It contains **no security logic of its own** — it only wires up the same `Upload` validation any manual caller would use, drawing its extension data from a single source (`Webrium\Helpers\MimeMap`). The MIME-consistency check and dangerous-extension blacklist stay enabled on everything it produces.
 
-## Factory methods
+## Factory Methods
 
 Each factory takes the input field name and returns an `Upload`, an array of `Upload` instances, or `null` — exactly like `Upload::fromInput()`.
 
@@ -272,7 +273,7 @@ Each factory takes the input field name and returns an `Upload`, an array of `Up
 
 Each factory applies the category's extension list, the size cap above, and `enforceMimeConsistency(true)`.
 
-### Allowed extensions per category
+### Allowed Extensions per Category
 
 | Category | Extensions |
 | --- | --- |
@@ -322,6 +323,6 @@ foreach ($gallery ?? [] as $image) {
 }
 ```
 
-## When to use which
+## When to Use Which
 
 Use **`UploadHelper`** for the common cases — it picks safe extensions, MIME types, and size caps for you. Drop down to **`Upload`** directly when you need a custom mix of types, an unusual size policy, or one of the explicit security opt-outs.

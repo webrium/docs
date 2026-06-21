@@ -1,4 +1,5 @@
 # Localization
+
 Webrium provides a simple file-based translation system for building multi-language applications.
 
 ## Language Files
@@ -24,6 +25,24 @@ return [
 
 You can have as many files as you like — `messages.php`, `validation.php`, `errors.php` — organized by topic.
 
+> Under the hood, the framework resolves the language directory through the `langs` alias registered in `Directory`. By default this is mapped to `storage/langs` via `Directory::initDefaultStructure()`, but you can point it elsewhere by calling `Directory::set('langs', '...')` before any translation is loaded.
+
+## Default Locales
+
+Webrium ships with ready-made language directories for seven locales:
+
+| Code | Language |
+|------|----------|
+| `ar` | Arabic |
+| `de` | German |
+| `en` | English |
+| `fa` | Persian |
+| `ja` | Japanese |
+| `ru` | Russian |
+| `zh` | Chinese |
+
+Each of these contains a starter `validation.php` file with translated error messages for the built-in validation rules, so the `Validator` works out of the box for these locales. Add your own files (such as `messages.php`) to extend any of them, or create a new directory under `storage/langs/` for additional locales.
+
 ## Setting the Locale
 
 The default locale is `en`. Change it with `App::setLocale()`:
@@ -43,8 +62,8 @@ App::setLocale(Session::get('locale', 'en'));
 ### Checking the Current Locale
 
 ```php
-App::getLocale();        // "fa"
-App::isLocale('fa');     // true
+App::getLocale();    // "fa"
+App::isLocale('fa'); // true
 ```
 
 ## Translating Strings
@@ -62,6 +81,8 @@ echo lang('messages.welcome');
 App::trans('messages.welcome');
 lang('messages.welcome');
 ```
+
+Once a language file is loaded, the framework keeps it in an in-memory cache per locale, so repeated lookups within the same request do not re-read the file from disk.
 
 ## Placeholders
 
@@ -81,20 +102,21 @@ echo lang('messages.greeting', ['name' => 'Alice']);
 
 ## Missing Translations
 
-If a translation key is not found within an existing language file, the key itself is returned as a fallback:
+If a translation **key** is not found within an existing language file, the key itself (the part after the dot) is returned as a fallback:
 
 ```php
 // 'messages.nonexistent' is not defined
 echo lang('messages.nonexistent'); // "nonexistent"
 ```
 
-If the language file itself doesn't exist for the current locale, or the key format is invalid (not `file.key`), an error is triggered via `Debug` and `false` is returned.
+If the language **file** does not exist for the current locale, or the key format is invalid (not `file.key`), an error is reported through `Debug` and `false` is returned.
 
 ## Example: Switching Locale via Route
 
 ```php
 use Webrium\Route;
 use Webrium\Session;
+use Webrium\App;
 
 Route::get('/locale/{locale}', function ($locale) {
     Session::set('locale', $locale);
@@ -106,8 +128,3 @@ Route::get('/locale/{locale}', function ($locale) {
 // In your bootstrap, before routing:
 App::setLocale(Session::get('locale', 'en'));
 ```
-
-## Next Steps
-
-- [Validation](./01-validation.md) — translatable validation messages
-- [Helper Functions Reference](../reference/helpers.md) — `lang()`, `env()`

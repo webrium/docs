@@ -1,5 +1,6 @@
 # Events
-Webrium's `Event` class provides a simple publish/subscribe system, useful for decoupling parts of your application — for example, sending a welcome email when a user registers, without coupling the registration logic directly to the mailer.
+
+Webrium ships a simple publish/subscribe system, useful for decoupling parts of your application — for example, sending a welcome email when a user registers, without coupling the registration logic directly to the mailer.
 
 ## Registering Listeners
 
@@ -19,7 +20,7 @@ Event::on('user.registered', function ($user) {
 Event::emit('user.registered', $user);
 ```
 
-Any number of arguments can be passed to `emit()` — they are forwarded to every listener:
+Any number of arguments can be passed to `emit()` — they are forwarded to every listener in the same order:
 
 ```php
 Event::emit('order.placed', $order, $user);
@@ -42,7 +43,7 @@ Event::emit('app.booted'); // listener runs
 Event::emit('app.booted'); // listener does NOT run again
 ```
 
-This is useful for one-time setup tasks, initialization hooks, or guarding against duplicate processing.
+This is useful for one-time setup tasks, initialization hooks, or guarding against duplicate processing. One-shot listeners are de-queued before they run, so even if the callback re-emits the same event, it will not fire itself a second time.
 
 ## Checking for Listeners
 
@@ -94,9 +95,14 @@ class AuthController
 }
 ```
 
-The controller doesn't need to know about email or logging — it just announces that registration happened.
+The controller does not need to know about email or logging — it just announces that registration happened.
 
-## Next Steps
+## Framework Events
 
-- [Helper Functions Reference](../reference/helpers.md)
-- [Architecture: The Kernel](../architecture/kernel.md)
+Some framework subsystems emit events of their own that your application can listen for. The most useful one is `error`, emitted by the error handler every time an error is captured:
+
+```php
+Event::on('error', function ($data) {
+    // $data: ['message', 'line', 'file', 'type', 'is_fatal']
+});
+```

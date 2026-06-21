@@ -1,5 +1,4 @@
 # Controllers
-# 
 
 Controllers group related request-handling logic into classes, keeping your route files clean and your application organized.
 
@@ -63,6 +62,24 @@ class PostController
 }
 ```
 
+### Typed Parameters
+
+Route parameters always arrive as strings from the URL, but Webrium inspects your method signature and coerces values to the declared scalar type before invoking the action. This means typed parameters work naturally — even under `declare(strict_types=1)`:
+
+```php
+Route::get('/posts/{id}', 'PostController@show');
+```
+
+```php
+public function show(int $id)
+{
+    // $id arrives as an integer, not the string "42"
+    return Post::find($id);
+}
+```
+
+Only built-in scalar types (`int`, `float`, `bool`, `string`) are coerced. Untyped, union-typed, and class-typed parameters are passed through unchanged. A non-numeric value bound to `int` or `float` is also passed through unchanged, so PHP raises a proper `TypeError` instead of silently converting it to `0`.
+
 ## Returning Responses
 
 Whatever a controller method returns is passed to `Header::respond()`:
@@ -84,11 +101,9 @@ public function ping()
 }
 ```
 
-See [Responses](../responses/01-basics.md) for more on controlling status codes and headers.
-
 ## Lifecycle Hooks: `boot()` and `teardown()`
 
-Controllers can define two optional hook methods that the [Kernel](../architecture/kernel.md) calls automatically:
+Controllers can define two optional hook methods that Webrium calls automatically:
 
 ```php
 namespace App\Controllers;
@@ -114,10 +129,4 @@ class DashboardController
 }
 ```
 
-Both hooks are entirely optional — if a controller doesn't define them, they're simply skipped.
-
-## Next Steps
-
-- [Requests](../requests/01-basics.md) — accessing input data inside controllers
-- [Responses](../responses/01-basics.md) — shaping what `Header::respond()` sends
-- [Views](./06-views.md) — rendering templates from a controller
+Both hooks are entirely optional — if a controller does not define them, they are simply skipped.

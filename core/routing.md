@@ -72,7 +72,7 @@ Route::get('/users', 'UserController@index');
 Route::get('/users', [UserController::class, 'index']);
 ```
 
-The string form resolves the controller class inside `App\Controllers` (so `'UserController@index'` becomes `App\Controllers\UserController`). The array form uses the fully-qualified class name you pass in. See [Controllers](../controllers/01-basics.md) for details on how dispatching works, including the `boot()` and `teardown()` lifecycle hooks.
+The string form resolves the controller class inside `App\Controllers` (so `'UserController@index'` becomes `App\Controllers\UserController`). The array form uses the fully-qualified class name you pass in.
 
 ### Route Parameters
 
@@ -113,9 +113,9 @@ class PostController
 You can constrain a parameter to a built-in pattern with `{name:type}`. If the captured segment does not match the type, the route is treated as a non-match (and matching continues to the next route, eventually falling through to the 404 handler):
 
 ```php
-Route::get('/users/{id:int}', 'UserController@show');     // only matches numeric ids
-Route::get('/posts/{slug:slug}', 'PostController@show');  // letters, digits, '-' and '_'
-Route::get('/tokens/{token:uuid}', 'TokenController@show'); // a v4-style UUID
+Route::get('/users/{id:int}', 'UserController@show');       // only matches numeric ids
+Route::get('/posts/{slug:slug}', 'PostController@show');    // letters, digits, '-' and '_'
+Route::get('/tokens/{token:uuid}', 'TokenController@show'); // a hexadecimal UUID (8-4-4-4-12)
 ```
 
 The available types are:
@@ -126,7 +126,9 @@ The available types are:
 | `alpha` | Letters only (`a–z`, `A–Z`) |
 | `alnum` | Letters and digits |
 | `slug` | Letters, digits, hyphens, and underscores |
-| `uuid` | A canonical 8-4-4-4-12 hexadecimal UUID |
+| `uuid` | A hexadecimal UUID in canonical 8-4-4-4-12 form (any version) |
+
+Captured values are also coerced into the declared scalar type of your controller method's signature (e.g. `function show(int $id)` receives an `int`, not a string), so typed parameters integrate naturally with `declare(strict_types=1)`.
 
 #### Optional Parameters
 
@@ -170,11 +172,11 @@ Route::get('/users/{id}', 'UserController@show', 'users.show');
 $url = route('users.show', ['id' => 42]); // /users/42
 ```
 
-Parameter values are percent-encoded, so values containing slashes, spaces, or other reserved characters cannot corrupt the resulting URL. A typed placeholder such as `{id:int}` is substituted the same way — the `:type` suffix is stripped from the generated URL. If a required parameter is missing, or a named route doesn't exist, an error is triggered via `Debug`.
+Parameter values are percent-encoded, so values containing slashes, spaces, or other reserved characters cannot corrupt the resulting URL. A typed placeholder such as `{id:int}` is substituted the same way — the `:type` suffix is stripped from the generated URL. If a required parameter is missing, or a named route does not exist, an error is triggered via `Debug`.
 
 ### Loading Route Files
 
-Use `Route::source()` to load one or more route files. By default, files are resolved from the `routes` directory:
+Use `Route::source()` to load one or more route files. By default, files are resolved from the directory registered as `routes` in the `Directory` registry:
 
 ```php
 Route::source(['web.php', 'api.php']);
@@ -182,17 +184,22 @@ Route::source(['web.php', 'api.php']);
 
 #### Loading from a Custom Directory
 
-Pass a second argument to load route files from a different directory or registered alias — useful for modular applications or packages that ship their own routes:
+The optional second argument is **the name of a directory alias registered in `Directory`** — not a relative or absolute path. Register the alias first, then refer to it by name. This is useful for modular applications or packages that ship their own routes:
 
 ```php
-// Load from a directory alias registered with Directory
-Route::source(['shop.php'], 'modules/shop/routes');
+use Webrium\Directory;
+use Webrium\Route;
 
-// Load from an absolute path
-Route::source(['admin.php'], '/var/www/admin/routes');
+// 1. Register the directory under any name you choose
+Directory::set('shop_routes', 'modules/shop/routes');
+
+// 2. Load route files from that alias
+Route::source(['shop.php'], 'shop_routes');
 ```
 
-If a file in the list doesn't exist, an error is triggered.
+Because `Route::source()` resolves the directory through `Directory::path()`, paths are always anchored to the application root and protected against traversal. Passing a raw path string (e.g. `'modules/shop/routes'` or `'/var/www/admin/routes'`) that has not been registered will fail.
+
+If a file in the list does not exist, an error is triggered.
 
 ### Not Found Handling
 
@@ -207,11 +214,11 @@ Route::setNotFoundHandler(function () {
 Route::setNotFoundHandler('ErrorController@notFound');
 ```
 
-> Note: `view()` is **not** a built-in Webrium helper — Webrium's core package does not ship a templating/view layer. If you've added your own `view()` function (or one from a separate package) to render HTML templates, you can return its output from the handler just like any other string:
+> Note: `view()` is **not** a built-in Webrium helper — the framework's core does not ship a templating layer. If you have added your own `view()` function (or one from a separate package) to render HTML templates, you can return its output from the handler just like any other string:
 >
 > ```php
 > Route::setNotFoundHandler(function () {
->     return view('errors.404'); // only works if you've defined a view() helper yourself
+>     return view('errors.404'); // only works if you have defined a view() helper yourself
 > });
 > ```
 
@@ -241,7 +248,7 @@ Route::group('admin', function () {
 ```php
 Route::group(['prefix' => 'api'], function () {
     Route::get('/users', 'UserController@index'); // /api/users
-    Route::get('/posts', 'PostController@index');  // /api/posts
+    Route::get('/posts', 'PostController@index'); // /api/posts
 });
 ```
 
@@ -287,7 +294,7 @@ Route::group(['prefix' => 'api'], function () {
 
 Here `/api/status` has no middleware, while `/api/admin/users` is prefixed with `api/admin` and protected by `AuthMiddleware@isAdmin`.
 
-> **Middleware stacks across nested groups.** When an inner group declares its own `middleware`, it is **merged with** the middleware inherited from every enclosing group — the inner routes run the full chain from the outside in. (This is a change from earlier versions, where an inner group's middleware replaced the outer one.)
+> **Middleware stacks across nested groups.** When an inner group declares its own `middleware`, it is **merged with** the middleware inherited from every enclosing group — the inner routes run the full chain from the outside in.
 >
 > ```php
 > Route::group(['prefix' => 'api', 'middleware' => 'App\Middlewares\AuthMiddleware'], function () {
@@ -314,7 +321,7 @@ Here `/api/status` has no middleware, while `/api/admin/users` is prefixed with 
 
 ## Middleware
 
-Middleware provides a way to run logic before a route's handler executes — typically for authentication, authorization, logging, or rate limiting. If middleware fails, the request is stopped immediately and the route handler never runs.
+Middleware runs logic before a route's handler executes — typically for authentication, authorization, logging, or rate limiting. If middleware blocks the request, the handler never runs.
 
 Middleware in Webrium is applied through [route groups](#route-groups) — there is no per-route `->middleware()` method. Wrap any routes that need protection in a `Route::group()` call.
 
@@ -467,9 +474,5 @@ Returning an array sends it as JSON, honouring an optional `status` key (default
 ### Limitations to Keep in Mind
 
 - **No request/next pipeline.** Middleware runs as a simple before-check; it cannot modify the request or pass data forward to the controller. It *can*, however, short-circuit with a custom response (array, string, or object) as described above — it is not limited to a fixed `403`.
-- **No parameterized middleware.** There's no syntax like `auth:admin`. For variations of the same check, define separate methods and use `Class@method` instead (e.g. `AuthMiddleware@isAdmin`).
+- **No parameterized middleware.** There is no syntax like `auth:admin`. For variations of the same check, define separate methods and use `Class@method` instead (e.g. `AuthMiddleware@isAdmin`).
 - **Middleware stacks across nested groups.** As shown in [Nested Groups](#nested-groups), an inner group's middleware is combined with — not a replacement for — its enclosing groups' middleware.
-
-## Next Steps
-
-- [Controllers](../controllers/01-basics.md) — handling requests with controller classes, including the `boot()` hook as an alternative for per-controller checks

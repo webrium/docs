@@ -1,5 +1,6 @@
 # HTTP Client
-Webrium's `HttpClient` provides a fluent, chainable API for making outgoing HTTP requests — useful for calling external APIs, webhooks, and third-party services.
+
+Webrium provides a fluent, chainable API for making outgoing HTTP requests — useful for calling external APIs, webhooks, and third-party services. The client is built on cURL but hides its rough edges behind a small, expressive API.
 
 ## Basic Requests
 
@@ -124,6 +125,23 @@ HttpClient::make()
     ->get($url);
 ```
 
+## Request Middleware
+
+Register callbacks that run just before the request is dispatched. Each callback receives the cURL handle and the client instance, so it can inspect or further configure the request — useful for logging, adding signed headers, or applying cross-cutting policies:
+
+```php
+HttpClient::make('https://api.example.com')
+    ->middleware(function ($ch, $client) {
+        // e.g. attach a signed header derived from the current request
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'X-Signature: ' . sign_request(),
+        ]);
+    })
+    ->get('/data');
+```
+
+Middleware callbacks are applied in the order they were registered. Multiple middlewares can be chained on a single client.
+
 ## Working with Responses
 
 Every request returns an `HttpResponse` instance.
@@ -132,21 +150,21 @@ Every request returns an `HttpResponse` instance.
 $response = HttpClient::make()->get($url);
 
 $response->status();        // int, e.g. 200
-$response->ok();             // true if status === 200
-$response->successful();     // true if 2xx
-$response->redirect();       // true if 3xx
-$response->clientError();    // true if 4xx
-$response->serverError();    // true if 5xx
-$response->failed();         // true if 4xx or 5xx
+$response->ok();            // true if status === 200
+$response->successful();    // true if 2xx
+$response->redirect();      // true if 3xx
+$response->clientError();   // true if 4xx
+$response->serverError();   // true if 5xx
+$response->failed();        // true if 4xx or 5xx
 
-$response->body();           // raw response body as string
-$response->json();           // decoded JSON (associative array by default)
-$response->json(false);      // decoded JSON as object
+$response->body();          // raw response body as string
+$response->json();          // decoded JSON (associative array by default)
+$response->json(false);     // decoded JSON as object
 
 $response->header('Content-Type');
-$response->headers();         // all response headers
+$response->headers();       // all response headers
 
-$response->info();            // cURL transfer info (timing, etc.)
+$response->info();          // cURL transfer info (timing, etc.)
 $response->info('total_time');
 ```
 
@@ -194,8 +212,3 @@ class WeatherController
     }
 }
 ```
-
-## Next Steps
-
-- [Hashing & Security](./04-hashing.md) — signing webhook payloads
-- [Helper Functions Reference](../reference/helpers.md)

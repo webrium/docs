@@ -1,5 +1,6 @@
 # Validation
-Webrium's `Validator` class provides a fluent, chainable API for validating incoming request data.
+
+Webrium provides a fluent, chainable validation API through the `Validator` class, designed for validating incoming request data.
 
 ## Basic Usage
 
@@ -92,13 +93,13 @@ $validator->field('age')->min(18, 'You must be at least 18 years old.');
 ## Running Validation
 
 ```php
-$validator->validate();  // runs validation, returns bool
-$validator->isValid();   // alias for validate()
-$validator->fails();     // true if validation failed (runs validate() if not already run)
-$validator->passes();    // inverse of fails()
+$validator->validate(); // runs validation, returns bool
+$validator->isValid();  // alias for validate()
+$validator->fails();    // true if validation failed (runs validate() if not already run)
+$validator->passes();   // inverse of fails()
 ```
 
-`fails()` and `passes()` automatically trigger validation if it hasn't run yet, so in most cases you can call them directly without calling `validate()` first.
+`fails()` and `passes()` automatically trigger validation if it has not run yet, so in most cases you can call them directly without calling `validate()` first.
 
 ## Retrieving Errors
 
@@ -141,6 +142,9 @@ return [
 A common pattern is to validate input, flash errors and old input to the session, then redirect back to the form:
 
 ```php
+use Webrium\Validator;
+use Webrium\Flash;
+
 $validator = new Validator();
 $validator->field('email')->required()->email();
 
@@ -152,9 +156,4 @@ if ($validator->fails()) {
 }
 ```
 
-On the next request, the form can display errors and repopulate fields using the [`errors()` and `old()` helpers](./02-sessions.md#flash-data).
-
-## Next Steps
-
-- [Sessions](./02-sessions.md) — flash messages and old input
-- [Requests](../requests/01-basics.md) — retrieving the data being validated
+On the next request, the form can display errors and repopulate fields using the `errors()` and `old()` helpers.

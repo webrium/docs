@@ -1,5 +1,6 @@
 # Hashing
-Webrium's `Hash` class provides password hashing, HMACs, checksums, tokens, and UUIDs through a single static API. It covers the common security primitives an application needs, with safe defaults.
+
+Webrium provides password hashing, HMACs, checksums, tokens, and UUIDs through a single static API on the `Hash` class. It covers the common security primitives an application needs, with safe defaults.
 
 ## Password Hashing
 
@@ -158,8 +159,3 @@ Hash::peppered($data, $appSecretPepper); // keyed with an application-wide secre
 ```
 
 Use `salted()` with a value stored alongside each record, and `peppered()` with a single secret kept in your application configuration. For user passwords, prefer `make()`, which manages salting for you.
-
-## Next Steps
-
-- [JSON Web Tokens (JWT)](./jwt.md) — signing and verifying tokens for API authentication
-- [Validation](./01-validation.md)
