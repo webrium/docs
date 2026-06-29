@@ -1,0 +1,87 @@
+# Webrium
+
+> Webrium is a lightweight, modular PHP framework for building web applications and JSON APIs. It is composed of four independent packages — Core, FoxDB, View, and Console — that work together as a full-stack framework or independently in any PHP project.
+
+Webrium runs on PHP 8.1+. A new project is created with `composer create-project webrium/webrium my-app` and runs with `composer serve`. The framework follows PSR-4 (the `App\` namespace maps to `app/`), uses a single `public/index.php` entry point, and reads environment configuration from a `.env` file.
+
+The four packages and their roles:
+
+- **`webrium/core`** (`Webrium\` namespace) — routing, controllers, requests/responses, sessions, validation, file uploads, HTTP client, JWT, hashing, events, filesystem, localization, error handling
+- **`webrium/foxdb`** (`Foxdb\` namespace — note: not `Webrium\Foxdb\`) — query builder, Eloquent-style ORM, schema builder, migrations, seeders; supports MySQL, PostgreSQL, and SQLite
+- **`webrium/view`** (`Webrium\View\` namespace) — Blade-compatible templating engine with hybrid static caching and Editor.js integration; compiles templates to plain PHP (no `eval`, no `DOMDocument`)
+- **`webrium/console`** (`Webrium\Console\` namespace) — the `webrium` CLI for scaffolding, migrations, plugins; framework-coupled, not standalone
+
+Each package — except Console — is independently usable in any PHP project.
+
+## Documentation
+
+### Getting Started
+
+- [Introduction](https://webrium.dev/docs/v5/getting-started/introduction): what Webrium is, the modular philosophy, full framework vs. standalone packages
+- [Installation](https://webrium.dev/docs/v5/getting-started/installation): requirements, creating a project, running the dev server
+- [Configuration](https://webrium.dev/docs/v5/getting-started/configuration): the `.env` file, directory layout, path helpers
+- [Request Lifecycle](https://webrium.dev/docs/v5/getting-started/request-lifecycle): what happens between an HTTP request and the response
+
+### Core (`webrium/core`)
+
+- [Introduction](https://webrium.dev/docs/v5/core/introduction): standalone installation, minimal bootstrap, what's in the package
+- [Routing](https://webrium.dev/docs/v5/core/routing): defining routes, groups, parameters, middleware, named routes
+- [Controllers](https://webrium.dev/docs/v5/core/controllers): controller classes, `boot()`/`teardown()` lifecycle hooks
+- [Requests & Responses](https://webrium.dev/docs/v5/core/requests-responses): reading input, sending responses, headers, redirects, CORS
+- [Sessions](https://webrium.dev/docs/v5/core/sessions): sessions, flash messages, validation errors, old input
+- [Validation](https://webrium.dev/docs/v5/core/validation): fluent input validation
+- [File Uploads](https://webrium.dev/docs/v5/core/file-uploads): secure uploads with safe defaults
+- [HTTP Client](https://webrium.dev/docs/v5/core/http-client): calling external APIs
+- [JWT](https://webrium.dev/docs/v5/core/jwt): issuing and verifying signed tokens
+- [Hashing](https://webrium.dev/docs/v5/core/hashing): passwords, HMACs, tokens, UUIDs
+- [Events](https://webrium.dev/docs/v5/core/events): publish/subscribe system
+- [Filesystem](https://webrium.dev/docs/v5/core/filesystem): `File` and `Directory` utilities
+- [Localization](https://webrium.dev/docs/v5/core/localization): file-based translations
+- [Error Handling](https://webrium.dev/docs/v5/core/error-handling): unified handling of errors, exceptions, fatal shutdowns
+- [Helper Functions](https://webrium.dev/docs/v5/core/helper-functions): the complete reference of global helpers
+- [Kernel](https://webrium.dev/docs/v5/core/kernel): the framework's execution core (advanced)
+
+### Database (`webrium/foxdb`)
+
+- [Introduction](https://webrium.dev/docs/v5/database/introduction): design goals, standalone install, namespace note (`Foxdb\`)
+- [Connections](https://webrium.dev/docs/v5/database/connections): registering connections, multi-connection, raw SQL, transactions, query log
+- [Query Builder](https://webrium.dev/docs/v5/database/query-builder): `DB::table()`, selects, conditions, joins, aggregates, writes
+- [Eloquent ORM](https://webrium.dev/docs/v5/database/eloquent-orm): models, CRUD, mass assignment, dirty tracking, scopes
+- [Relationships](https://webrium.dev/docs/v5/database/relationships): HasOne, HasMany, BelongsTo, BelongsToMany, HasManyThrough, eager loading
+- [Collections](https://webrium.dev/docs/v5/database/collections): the fluent API for result sets
+- [Casts & Serialization](https://webrium.dev/docs/v5/database/casts-serialization): attribute casts, `toArray()`, `toJson()`, hidden/visible fields
+- [Pagination](https://webrium.dev/docs/v5/database/pagination): paginating large result sets
+- [Migrations, Schema & Seeders](https://webrium.dev/docs/v5/database/migrations-schema): full DDL and data-evolution workflow
+
+### Template Engine (`webrium/view`)
+
+- [Introduction](https://webrium.dev/docs/v5/template-engine/introduction): design goals, standalone install, helpers (`view()`, `layout()`)
+- [Basic Syntax](https://webrium.dev/docs/v5/template-engine/basic-syntax): `@{{ }}`, `@raw()`, `@json()`, `@php()`
+- [Control Flow](https://webrium.dev/docs/v5/template-engine/control-flow): attribute-based `w-if`, `w-for`, `w-skip`
+- [Layouts](https://webrium.dev/docs/v5/template-engine/layouts): `@section`, `@yield`, `renderLayout()`
+- [Components](https://webrium.dev/docs/v5/template-engine/components): reusable partials with `@component`
+- [Hybrid Cache](https://webrium.dev/docs/v5/template-engine/hybrid-cache): pre-rendered static cache with TTL
+- [Editor.js Integration](https://webrium.dev/docs/v5/template-engine/editorjs): turning Editor.js JSON into HTML
+
+### Console (`webrium/console`)
+
+- [Introduction](https://webrium.dev/docs/v5/console/introduction): the `webrium` binary, command categories, conventions
+- [Scaffolding](https://webrium.dev/docs/v5/console/scaffolding): `init`, `make:model`, `make:controller`, `make:route`, `make:migration`, `make:seeder`
+- [Migrations & Seeders](https://webrium.dev/docs/v5/console/migrations-and-seeders): `migrate` and `db:seed`
+- [Database Management](https://webrium.dev/docs/v5/console/database-management): `db` and `table` commands
+- [Diagnostics](https://webrium.dev/docs/v5/console/diagnostics): `call` (invoke controller/model from CLI), `log` (manage log files)
+- [Plugins](https://webrium.dev/docs/v5/console/plugins): install, update, remove, create, and export plugin packages
+
+## Source Code
+
+- [webrium/webrium](https://github.com/webrium/webrium): the application skeleton that wires the four packages together
+- [webrium/core](https://github.com/webrium/core): the core package source
+- [webrium/foxdb](https://github.com/webrium/foxdb): the database package source
+- [webrium/view](https://github.com/webrium/view): the template engine source
+- [webrium/console](https://github.com/webrium/console): the CLI toolkit source
+- [webrium/docs](https://github.com/webrium/docs): the documentation source (markdown)
+
+## Optional
+
+- [Plugin System Wiki](https://github.com/webrium/console/wiki/webrium-plugin-system): full specification for creating and distributing Webrium plugins
+- [Claude Skill](https://github.com/webrium/docs/blob/main/webrium.skill): downloadable skill package for Claude users — install once and Claude will know Webrium's conventions, APIs, and patterns in every conversation
