@@ -1,5 +1,6 @@
 # Request Lifecycle
-Understanding how a request flows through Webrium helps you know where your code fits in, and makes debugging far more intuitive.
+
+Understanding how a request flows through Webrium helps you know where your code fits in, and makes debugging far more intuitive. Webrium is deliberately explicit about this — the boot sequence is visible in your own `public/index.php`, not hidden behind a magic bootstrapper.
 
 ## The Entry Point
 
@@ -9,18 +10,17 @@ A minimal entry point looks like this:
 
 ```php
 <?php
-
 require_once __DIR__ . '/../vendor/autoload.php';
 
 use Webrium\App;
 use Webrium\Route;
 
 App::initialize(__DIR__ . '/..');
-
-Route::source(['web.php']);
-
+Route::source(['Web.php']);
 App::run();
 ```
+
+The skeleton project's `index.php` adds a few extra lines to configure error handling, the view engine, sessions, and the locale — but the three calls above are the core of every Webrium application.
 
 ## Step by Step
 
@@ -28,23 +28,25 @@ App::run();
 
 `vendor/autoload.php` registers Composer's PSR-4 autoloader. This resolves both the framework's `Webrium\` namespace and your application's `App\` namespace — no manual class loading is required.
 
-### 2. `App::initialize()`
+### 2. `App::initialize($rootPath)`
 
 This bootstraps the application:
 
-- Sets the application's root path, used by helpers like `root_path()`, `storage_path()`, etc.
-- Loads Webrium's helper functions (`url()`, `redirect()`, `input()`, and more)
+- Records the project root path, used by helpers like `root_path()`, `storage_path()`, and `app_path()`
+- Loads Webrium's global helper functions (`url()`, `redirect()`, `input()`, `env()`, and more)
 - Prepares the request URL for routing
 
-### 3. Defining Routes
+At this point the framework is configured but no routes are registered and no request handling has begun.
 
-Routes are typically loaded from `app/Routes` using `Route::source()`:
+### 3. Loading Route Files
+
+Route files in `app/Routes/` are loaded via `Route::source()`:
 
 ```php
-Route::source(['web.php', 'api.php']);
+Route::source(['Web.php', 'Api.php']);
 ```
 
-Inside these files, routes are registered against the `Route` class:
+Each file registers routes against the `Route` class:
 
 ```php
 use Webrium\Route;
@@ -56,7 +58,7 @@ Route::get('/', function () {
 Route::get('/users', 'UserController@index');
 ```
 
-At this point, routes are only **registered** — nothing is executed yet.
+At this point routes are only **registered** — nothing is executed yet.
 
 ### 4. `App::run()`
 
@@ -72,7 +74,7 @@ This is where the request is actually handled. Internally, it:
 - If middleware fails, the request stops here with a `403 Forbidden` response.
 - If no route matches, the configured "not found" handler runs (or a default `404` response is returned).
 
-### 6. Dispatching to the Kernel
+### 6. Dispatching the Handler
 
 Once a route matches and middleware passes, the handler is dispatched:
 
@@ -85,9 +87,11 @@ Once a route matches and middleware passes, the handler is dispatched:
 
 1. Instantiates the controller class
 2. Calls `boot()` on the controller, if defined — useful for setup or authorization checks
-3. Calls the target method, passing in any route parameters
+3. Calls the target method, passing in any route parameters (with type coercion based on the parameter's declared type)
 4. Passes the method's return value to `Header::respond()`
 5. Calls `teardown()` on the controller, if defined — useful for cleanup or logging
+
+For a deeper look at the Kernel, see **Core → Kernel**.
 
 ### 8. Sending the Response
 
@@ -133,9 +137,3 @@ Dispatch
                           ├─► Header::respond()
                           └─► teardown()
 ```
-
-## Next Steps
-
-- [Routing](../routing/01-basic-routing.md) — defining and matching routes
-- [Controllers](../controllers/01-basics.md) — writing controller classes
-- [Responses](../responses/01-basics.md) — controlling what `Header::respond()` sends back
