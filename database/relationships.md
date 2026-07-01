@@ -1,9 +1,14 @@
 # Relationships
+
 Database tables are often related to one another — a user has many posts, a post belongs to a user, users have many roles through a pivot table. Eloquent relationships let you define these connections as methods on your models, and FoxDB handles the underlying queries and joins.
 FoxDB supports five relationship types: `HasOne`, `HasMany`, `BelongsTo`, `BelongsToMany`, and `HasManyThrough`. Each is both lazy-loadable (loaded on first access) and eager-loadable (loaded up front to avoid the N+1 query problem).
+
 ## One to One
+
 ### HasOne
+
 A `User` has one `Profile`. The foreign key (`user_id`) lives on the `profiles` table.
+
 ```php
 class User extends Model
 {
@@ -14,11 +19,15 @@ class User extends Model
     }
 }
 ```
+
 ```php
 $profile = $user->profile; // Profile|null
 ```
+
 ### BelongsTo
+
 The inverse: a `Profile` belongs to a `User`.
+
 ```php
 class Profile extends Model
 {
@@ -29,10 +38,13 @@ class Profile extends Model
     }
 }
 ```
+
 ```php
 $user = $profile->user; // User|null
 ```
+
 #### Associating and Dissociating
+
 ```php
 // Set the foreign key by passing the related model
 $profile->user()->associate($user);
@@ -41,8 +53,11 @@ $profile->save();
 $profile->user()->dissociate();
 $profile->save();
 ```
+
 ## One to Many
+
 A `User` has many `Post` records. The foreign key (`user_id`) lives on the `posts` table.
+
 ```php
 class User extends Model
 {
@@ -60,10 +75,12 @@ class Post extends Model
     }
 }
 ```
+
 ```php
 $posts  = $user->posts;   // Collection<Post>
 $author = $post->author;  // User|null
 ```
+
 All four key arguments to `hasOne`, `hasMany`, and `belongsTo` are optional — FoxDB derives sensible defaults from the model names (e.g. `user_id` for a `User` relation, and the related model's primary key). Pass them explicitly whenever your schema doesn't follow the convention.
 ## Many to Many
 Users can have many roles, and roles can belong to many users, through a pivot table (`user_role` by default — alphabetical snake_case of both model names).
@@ -167,5 +184,14 @@ Eager-loaded relations are included automatically in `toArray()`:
 $data = User::with('posts')->get()->toArray();
 // $data[0]['posts'] is an array of post arrays
 ```
+### `with()` Order in the Chain
+`with()` is order-independent — it can appear as the first call or anywhere after `select()`, `where()`, or any other query method, and the final result is the same:
+```php
+// All equivalent:
+User::with('posts')->select('id', 'name')->where('active', 1)->get();
+User::select('id', 'name')->with('posts')->where('active', 1)->get();
+User::where('active', 1)->select('id', 'name')->with('posts')->get();
+```
+> **Version note:** this order-independence relies on `select()` (and other forwarded query methods) returning a model-aware builder. On FoxDB versions where `Model::select(...)` returns a relation-unaware `Foxdb\Query\Builder` instead, chaining `->with(...)` after `select(...)` raises `Call to unknown method: Foxdb\Query\Builder::with()`. If you hit that error, either put `with()` first in the chain, or update FoxDB.
 ## Choosing Between Lazy and Eager Loading
 Use lazy loading when you only access the relation for a single model — for example, on a "show" page for one record. Use eager loading (`with()`) whenever you're iterating over a list of models and will access a relation on each one.
