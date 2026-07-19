@@ -13,6 +13,7 @@ This page covers the CLI workflow for installing, updating, removing, listing, a
 | `plugin:info` | Preview a plugin's metadata without installing |
 | `plugin:new` | Create a new plugin definition file in your project |
 | `plugin:export` | Package a plugin definition into a distributable zip |
+| `plugin:config:compile` | Merge the installed registry with project overrides |
 
 ## Installing Plugins
 
@@ -82,6 +83,12 @@ php webrium plugin:update https://example.com/releases/my-plugin-1.1.0.zip
 ```
 
 Like `plugin:install`, a backup is created by default; pass `--no-backup` to skip it.
+
+On a successful update, package-owned fields (`name`, `version`, `description`,
+`author`, `hash`, `files`, and `meta`) are refreshed from the new package.
+Project/runtime fields (`status`, `active`, and `installed_at`) and unknown
+extension fields are preserved. The plugin also keeps its existing position in
+the registry.
 
 ### `plugin:remove`
 
@@ -181,11 +188,117 @@ The resulting zip is what other projects pass to `plugin:install` or `plugin:upd
 
 ---
 
+## Configuring Plugin Paths
+
+All plugin-system paths have conventional defaults and can be configured
+independently in `.webrium.conf.json` at the project root:
+
+```json
+{
+    "console": {
+        "plugins": {
+            "registry": "storage/app/plugins/plugins.json",
+            "overrides": "storage/app/plugins/plugins.overrides.json",
+            "compiled": "storage/framework/cache/plugins.compiled.json",
+            "definitions": "storage/app/plugins/definitions",
+            "dist": "storage/app/plugins/dist",
+            "backups": "storage/app/plugins/backups"
+        }
+    }
+}
+```
+
+Each key is optional; omitted keys retain their default. This allows a project
+to keep its installed registry and overrides in the project repository while
+placing definitions and exported packages in a separate authoring repository.
+
+All configured paths must:
+
+- Be relative to the project root.
+- Stay inside the project root and contain no `..` traversal segments.
+- Resolve to distinct locations.
+- Use file paths for `registry`, `overrides`, and `compiled`.
+- Use directory paths for `definitions`, `dist`, and `backups`.
+
+`console.authoring_root` and the `--authoring-root` command option are not
+supported. Configure `definitions` and `dist` explicitly.
+
+## Project Overrides and Compiled Configuration
+
+`plugins.json` is the base installed registry managed by `plugin:install`,
+`plugin:update`, and `plugin:remove`. Projects can add an optional,
+project-owned `plugins.overrides.json` without editing that base registry:
+
+```json
+{
+    "plugins": {
+        "example-plugin": {
+            "status": "disabled",
+            "meta": {
+                "project_options": {
+                    "compact_mode": true
+                }
+            }
+        }
+    }
+}
+```
+
+Override entries are keyed by an installed plugin name. JSON objects merge
+recursively. Numeric arrays and all scalar values replace the base value in
+full; arrays are never merged by index.
+
+The following package-owned fields cannot be overridden:
+
+- `name`
+- `version`
+- `description`
+- `author`
+- `installed_at`
+- `updated_at`
+- `hash`
+- `files`
+
+An unknown plugin name, malformed JSON, an unknown overrides root key, or an
+attempt to replace a protected field causes compilation to fail. The last valid
+compiled file is left untouched.
+
+### `plugin:config:compile`
+
+```bash
+php webrium plugin:config:compile [--dry-run]
+```
+
+The command validates the registry and optional overrides, merges them, and
+writes the configured compiled file atomically. Use `--dry-run` to validate and
+show the resolved paths without writing output:
+
+```bash
+php webrium plugin:config:compile --dry-run
+php webrium plugin:config:compile
+```
+
+Installing, updating, or removing a plugin invalidates an existing compiled
+file because the base registry changed. Compile again before a runtime consumer
+uses the effective registry.
+
+The compiled file is derived cache data. Console creates it but does not
+automatically change application code to read it. Applications that need
+override-aware behavior must explicitly consume the configured compiled file
+and define an appropriate fallback when it is absent.
+
+---
+
 ## Where Things Are Stored
 
-- **Plugin registry & metadata.** Tracked in the project's `storage/app/plugins/` directory. `plugin:list` reads this.
-- **Plugin definitions** (when you're authoring a plugin). `storage/app/plugins/definitions/<name>.json`.
-- **Exported zips.** Written to `storage/app/plugins/exports/` by default.
+- **Base registry.** `storage/app/plugins/plugins.json` by default. Lifecycle and read-only management commands use this file.
+- **Project overrides.** `storage/app/plugins/plugins.overrides.json` by default. Optional and never overwritten by plugin lifecycle commands.
+- **Compiled registry.** `storage/framework/cache/plugins.compiled.json` by default. Derived cache; normally ignored by version control.
+- **Plugin definitions.** `storage/app/plugins/definitions/<name>.json` by default.
+- **Exported zips.** Written to `storage/app/plugins/dist/` by default.
 - **Backups.** Created in `storage/app/plugins/backups/` before destructive operations, unless `--no-backup` is passed.
+
+Whether the registry and overrides are committed is a project policy. Backups
+and compiled output should normally remain untracked.
 
 For the full plugin specification — every key in the definition file, the lifecycle hook API, restrictions on file paths, and dependency resolution — see the **[Plugin System Wiki](https://github.com/webrium/console/wiki/webrium-plugin-system)**.

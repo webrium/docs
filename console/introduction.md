@@ -43,7 +43,7 @@ The commands group naturally into a few areas:
 | Migrations & seeders | `migrate`, `db:seed` | *Migrations & Seeders* |
 | Database management | `db`, `table` | *Database Management* |
 | Diagnostics | `call`, `log` | *Diagnostics* |
-| Plugin system | `plugin:install`, `plugin:update`, `plugin:remove`, `plugin:list`, `plugin:info`, `plugin:new`, `plugin:export` | *Plugins* |
+| Plugin system | `plugin:install`, `plugin:update`, `plugin:remove`, `plugin:list`, `plugin:info`, `plugin:new`, `plugin:export`, `plugin:config:compile` | *Plugins* |
 
 ## Conventions
 
