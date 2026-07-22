@@ -123,6 +123,20 @@ Debug::getErrorLine();     // line number
 Debug::getHtmlOutput();    // rendered error HTML, if any
 ```
 
+## View Exceptions
+
+`webrium/view` maps compiled-template failures back to their original template and line. Core remains responsible for displaying and logging the exception:
+
+```php
+if ($exception instanceof \Webrium\View\ViewException) {
+    $file = $exception->getOriginalView();
+    $line = $exception->getOriginalLine();
+    $message = $exception->getMessage();
+}
+```
+
+Preserve the complete exception message; do not derive it by splitting on `: ` because view messages and filesystem paths may contain colons. See [View Error Handling](../template-engine/error-handling.md) for source-map and exception details.
+
 ## Recommended Setup by Environment
 
 ### Development

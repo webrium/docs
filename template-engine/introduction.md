@@ -16,6 +16,7 @@ A few principles shape every part of the view engine:
 - **No `eval`.** Templates are compiled to ordinary PHP files that are then `require`d. Anything you can debug with a stack trace is something you can debug here.
 - **No `DOMDocument`.** A custom streaming HTML parser scans your templates byte by byte. This means attributes like `@click`, `:class`, `x-data`, `wire:click`, and `hx-get` are preserved exactly as written — no normalisation, no quoting tricks, no surprises.
 - **Compile once, render many.** A template is compiled the first time it is rendered, and the compiled output is cached on disk. Subsequent renders just `require` a PHP file.
+- **Source-mapped errors.** Runtime and parser failures point back to the original view and source line, even when compilation rewrites multiline directives.
 - **Safe by default.** `@{{ ... }}` always escapes its output. Raw HTML output and inline PHP are opt-in directives you can audit.
 - **Hybrid static caching.** Pages can be rendered once and stored as static HTML with a TTL, then served as static files on subsequent requests — without giving up the ability to fall back to a fresh render when the cache expires.
 
@@ -93,7 +94,8 @@ Both are available whether you use the engine standalone or as part of the full 
 | Conditionals and loops on HTML elements | `w-if`, `w-else-if`, `w-else`, `w-for`, `w-skip` | *Control Flow* |
 | Template inheritance | `@section`, `@yield`, `Engine::renderLayout()`, `View` class | *Layouts* |
 | Reusable partials | `@component`, `Engine::component()` | *Components* |
-| Pre-rendered static cache | `Engine::hybrid()`, TTL constants | *Hybrid Cache* |
+| Pre-rendered static cache | `hybrid()`, `hybridSection()`, `hybridLayout()`, `remember()` | *Hybrid Cache* |
+| Template diagnostics | `ViewException`, source maps, original view/line | *View Error Handling* |
 | JSON-to-HTML conversion | `EditorJsParser` | *Editor.js Integration* |
 
 ## Where to Go Next
@@ -103,4 +105,5 @@ Both are available whether you use the engine standalone or as part of the full 
 - **Layouts** — building a base layout and extending it from child views
 - **Components** — pulling reusable pieces into your templates
 - **Hybrid Cache** — the static-rendering layer for high-traffic pages
+- **View Error Handling** — accurate source paths and line numbers for compiled templates
 - **Editor.js Integration** — turning Editor.js JSON output into clean HTML

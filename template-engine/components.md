@@ -90,6 +90,8 @@ $html = View::component('components/user-card', ['user' => $user]);
 
 Both forms produce identical output — they're aliases for `Engine::render()` with a name that signals intent.
 
+For a shared component whose output is safe to reuse across requests, `Engine::hybridComponent()` can cache both its data queries and rendered HTML. Include every output-changing value in its key, and do not cache personalized components under a shared key. See [Hybrid Cache](hybrid-cache.md).
+
 ## Components vs. Layouts vs. Partials
 
 Webrium View doesn't draw a hard distinction between these — every "component", "partial", or "layout" is just a `.php` view file. The directive you use depends on the relationship:

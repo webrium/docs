@@ -1,27 +1,24 @@
 # Hybrid Cache
 
-The hybrid cache is the view engine's static-rendering layer. The idea is simple: for pages that don't change very often — a homepage, an article, a product page, a landing page — render them once, save the output as a static HTML file with a TTL, and serve that file directly on subsequent requests. When the TTL expires, fall back to a fresh render.
+The hybrid cache stores rendered HTML on disk and returns it directly on later requests. On a cache hit, the view is not rendered and a lazy data factory is not executed, so both template work and database queries can be skipped.
 
-Unlike traditional "full-page caching" (where you set up reverse-proxy rules outside the application), the hybrid cache lives inside your render code. The same call site decides whether to use the cache, when to refresh it, and what data to render with — and it's a single function call.
+Hybrid caching is controlled from PHP rather than from template directives. This makes the cache boundary, key, TTL, queries, and user context visible in the controller or service that owns them.
 
-## When to Use It
+## Choosing the Cache Boundary
 
-Hybrid caching is a good fit for:
+Use the smallest boundary that contains the expensive, shared output:
 
-- Pages that are expensive to render but change rarely (article pages, product detail pages)
-- Public pages that look the same for every visitor
-- Landing pages and marketing pages
-- Documentation and content sites
+| API | Cached output | Recommended use |
+| --- | --- | --- |
+| `hybrid()` | One complete view | Public pages or reusable view fragments |
+| `hybridLayout()` | Child view plus layout | Fully public pages where the whole response is identical |
+| `hybridSection()` | One named section | Expensive public content inside a dynamic layout |
+| `hybridComponent()` | One component | Shared menus, footers, cards, and widgets |
+| `remember()` | Arbitrary rendered string | Controller- or service-generated HTML |
 
-It is **not** a good fit for:
+Do not cache session-specific headers, profile controls, carts, CSRF tokens, permissions, or other personalized HTML under a shared key. For a page with a dynamic header and expensive public content, prefer `hybridSection()` and render the layout normally on every request.
 
-- Pages that depend on the current user (dashboards, authenticated views)
-- Pages with frequently-changing data (live feeds, order status, prices that update in real time)
-- Pages with personalization that varies per request
-
-For per-user content, stick with `Engine::render()`.
-
-## Signature
+## Method Signatures
 
 ```php
 Engine::hybrid(
@@ -29,205 +26,240 @@ Engine::hybrid(
     string|array $key,
     array|callable|null $dataOrFactory = null,
     ?int $cacheTtl = null
-);
+): string|false;
+
+Engine::hybridLayout(
+    string $layoutView,
+    string $view,
+    string|array $key,
+    array|callable|null $dataOrFactory = null,
+    ?int $cacheTtl = null
+): string|false;
+
+Engine::hybridSection(
+    string $view,
+    string $section,
+    string|array $key,
+    array|callable|null $dataOrFactory = null,
+    ?int $cacheTtl = null
+): string|false;
+
+Engine::hybridComponent(
+    string $view,
+    string|array $key,
+    array|callable|null $dataOrFactory = null,
+    ?int $cacheTtl = null
+): string|false;
+
+Engine::remember(
+    string $namespace,
+    string|array $key,
+    callable $renderer,
+    ?int $cacheTtl = null
+): string;
 ```
 
-| Parameter | Type | Purpose |
-| --- | --- | --- |
-| `$view` | `string` | The view to render, same as `Engine::render()` |
-| `$key` | `string \| array` | Cache key — identifies this specific rendering. An array is hashed into a single key. |
-| `$dataOrFactory` | `array \| callable \| null` | Data for the view, a factory closure, or `null` for read-only access |
-| `$cacheTtl` | `?int` | Cache lifetime in seconds, or `null` to use the default |
+The four view-based methods return `false` only in read-only mode when no fresh entry exists. `remember()` always renders on a miss and therefore returns a string.
 
-The third parameter has three distinct modes — described below.
+## Common Data Modes
 
-## Cache TTL Constants
+The view, layout, section, and component methods accept `array|callable|null` as their data argument.
 
-For readability, use the constants on `Engine`:
+### Lazy Factory — Recommended
 
-```php
-Engine::CACHE_NONE;       // 0       — no cache, every call re-renders
-Engine::CACHE_A_MINUTE;   // 60
-Engine::CACHE_AN_HOUR;    // 3600
-Engine::CACHE_A_DAY;      // 86400
-Engine::CACHE_A_WEEK;     // 604800
-```
-
-You can also override the default TTL used when none is passed to `hybrid()`:
-
-```php
-Engine::setDefaultHybridCacheTtl(Engine::CACHE_A_DAY);
-
-// Or disable the default, forcing every hybrid() call to specify a TTL:
-Engine::setDefaultHybridCacheTtl(null);
-```
-
-The factory-shipped default is one week.
-
-## Mode 1 — Direct Data
-
-Pass a data array as the third argument and the cache is **always re-rendered and overwritten**. Use this when you want the convenience of a single API but have already decided when to refresh the page (for example, after a content update):
-
-```php
-$html = Engine::hybrid(
-    'pages/home',
-    'home',
-    [
-        'title' => 'Home',
-        'user'  => $user,
-    ],
-    Engine::CACHE_AN_HOUR
-);
-```
-
-This mode is rarely what you want for high-traffic caching — it does the expensive work on every request. It exists as the "force refresh" form, and as a backward-compatible default.
-
-## Mode 2 — Lazy Factory
-
-Pass a closure as the third argument and the data is computed **only when the cache is missing or expired**. This is the form you'll use most often:
+A closure runs only when the cache is missing or expired:
 
 ```php
 $html = Engine::hybrid(
     'pages/article',
-    'article-' . $slug,
-    function () use ($db, $slug) {
-        $article = $db->articles->findBySlug($slug);
+    ['article', $locale, $slug],
+    function () use ($slug) {
         return [
-            'title'   => $article->title,
-            'article' => $article,
-            'related' => $db->articles->relatedTo($article),
+            'article' => Article::findBySlug($slug),
+            'related' => Article::relatedTo($slug),
         ];
     },
     Engine::CACHE_A_DAY
 );
 ```
 
-On a cache hit, the closure never runs — you skip the database query entirely, and the cached HTML is returned directly from disk.
+The factory must return an array. On a cache hit it is not called, so its database queries are skipped.
 
-The factory **must** return an array. Returning anything else raises a `ViewException`.
+### Direct Data — Force Refresh
 
-## Mode 3 — Read-Only
-
-Pass `null` as the third argument and `hybrid()` becomes a pure lookup — it returns the cached HTML if available, or `false` if no valid cache exists. Use this when you want explicit control over the fallback:
+Passing an array always renders the output and overwrites the cache:
 
 ```php
-$content = Engine::hybrid('pages/home', 'home', null);
-
-if ($content === false) {
-    // No cache — render fresh, do whatever fallback you want
-    $content = Engine::render('pages/home', [
-        'title' => 'Home',
-        'user'  => $user,
-    ]);
-}
-
-echo $content;
+$html = Engine::hybrid(
+    'pages/article',
+    ['article', $locale, $slug],
+    ['article' => $article],
+    Engine::CACHE_A_DAY
+);
 ```
 
-The read-only mode is useful when:
+Use this form when the caller has already decided that the cached value must be refreshed. It is not the normal high-traffic read path.
 
-- You want to log cache misses separately from rendering
-- The fallback path needs to do extra work (auth check, metric, redirect)
-- You want to render and store the cache yourself with a different TTL based on what the data looks like
+### Read-Only Lookup
+
+Passing `null` reads an existing fresh entry and returns `false` on a miss:
+
+```php
+$html = Engine::hybrid('pages/article', ['article', $locale, $slug], null);
+
+if ($html === false) {
+    $html = Engine::render('pages/article', ['article' => $article]);
+}
+```
+
+## Full Layout Cache
+
+`hybridLayout()` caches the complete child and layout output:
+
+```php
+$html = Engine::hybridLayout(
+    'layouts/site',
+    'pages/article',
+    ['article-page', $locale, $slug],
+    fn () => ['article' => Article::findBySlug($slug)],
+    Engine::CACHE_A_DAY
+);
+```
+
+Only use this when every visitor sharing the key may receive exactly the same HTML. If authentication changes the header or footer, cache a section instead.
+
+## Cached Section with a Dynamic Layout
+
+`hybridSection()` renders and caches one named `@section`. On a hit, both the child view and its data factory are skipped. The cached section can then be inserted into a freshly rendered layout:
+
+```php
+$content = Engine::hybridSection(
+    'pages/article',
+    'content',
+    ['article-content', $locale, $slug],
+    function () use ($slug) {
+        return [
+            'article' => Article::findBySlug($slug),
+            'related' => Article::relatedTo($slug),
+        ];
+    },
+    Engine::CACHE_A_DAY
+);
+
+$html = Engine::renderLayoutWithSections(
+    'layouts/site',
+    [
+        'seo' => $dynamicSeo,
+        'content' => $content,
+    ],
+    [
+        'currentUser' => $currentUser,
+        'cartCount' => $cartCount,
+    ]
+);
+```
+
+This is the recommended pattern when the main content and its queries are cacheable but the surrounding shell must remain dynamic.
+
+## Cached Components
+
+```php
+$footer = Engine::hybridComponent(
+    'components/footer',
+    ['footer', $locale, $settingsVersion],
+    fn () => ['links' => FooterLink::published()->get()],
+    Engine::CACHE_A_DAY
+);
+```
+
+The cache key must include every value that changes the component output.
+
+## Arbitrary Controller HTML
+
+`remember()` caches a string produced by custom code. The renderer must return a string:
+
+```php
+$report = Engine::remember(
+    'monthly-report',
+    [$accountId, $month],
+    fn () => $reportRenderer->render($accountId, $month),
+    Engine::CACHE_AN_HOUR
+);
+```
+
+The namespace prevents unrelated renderers from sharing an identity.
+
+## TTL and Global Configuration
+
+```php
+Engine::CACHE_NONE;       // 0 — bypass and remove this cache entry
+Engine::CACHE_A_MINUTE;   // 60
+Engine::CACHE_AN_HOUR;    // 3600
+Engine::CACHE_A_DAY;      // 86400
+Engine::CACHE_A_WEEK;     // 604800
+
+Engine::setDefaultHybridCacheTtl(Engine::CACHE_A_DAY);
+Engine::enableHybridCache((bool) $config['hybrid_cache_enabled']);
+```
+
+The default TTL is one week. Set it to `null` to require an explicit TTL on every cache write:
+
+```php
+Engine::setDefaultHybridCacheTtl(null);
+```
+
+`isHybridCacheEnabled()` returns the current global state. When caching is disabled, reads and writes are bypassed and lazy renderers still run, so the response is generated normally.
+
+`CACHE_NONE` bypasses caching and removes an existing entry for the same identity and key. Negative TTL values are invalid.
+
+## Precise Expiration
+
+New cache files contain an ISO-8601 timestamp with second-level precision:
+
+```html
+<!-- Automatically generated by webrium-view: [ex:2026-07-22T14:30:00+00:00] -->
+```
+
+An hourly TTL therefore expires after one hour, not at the end of the calendar day. Legacy date-only entries remain readable until the end of their recorded day.
 
 ## Cache Keys
 
-The key identifies a specific rendering of a view. A view rendered with different data — different slug, different language, different filters — needs different keys, or the cache will serve the wrong content.
-
-A string key is taken at face value:
-
-```php
-Engine::hybrid('pages/article', 'article-' . $slug, $factory);
-Engine::hybrid('pages/home', 'home-' . $locale, $factory);
-```
-
-An array key is hashed into a single deterministic value — convenient when the key naturally has multiple parts:
+Keys may be strings or arrays. Arrays are normalized and hashed deterministically, so associative key order does not change the cache identity:
 
 ```php
 Engine::hybrid(
     'pages/listing',
-    ['products', $category, $sort, $page],
+    [
+        'locale' => $locale,
+        'theme' => $theme,
+        'category' => $category,
+        'page' => $page,
+        'contentVersion' => $contentVersion,
+    ],
     $factory,
     Engine::CACHE_AN_HOUR
 );
 ```
 
-The two forms are interchangeable; pick whichever reads more clearly at the call site.
+Include every value that can change the HTML: locale, theme, slug, pagination, filters, authorization scope, and content version. Never include secrets in a human-readable string key; cache filenames contain sanitized identities and hashes.
 
-## How Expiry Works
+## Concurrency and Writes
 
-When `hybrid()` writes a static file, it embeds a comment marking the expiration date:
+Cache misses are protected by a per-entry file lock. After one request acquires the lock, it checks the cache again before rendering, preventing multiple concurrent requests from rebuilding the same entry. Completed output is published with an atomic rename, so readers do not receive partially written HTML.
 
-```html
-<!-- Automatically generated by webrium-view: [ex:2026-07-15] -->
+## Clearing Cache Files
+
+```php
+Engine::clearStatics();   // Hybrid HTML and lock files
+Engine::clearCompiled();  // Compiled PHP and source-map metadata
 ```
 
-On every read, the engine looks for this comment and compares the date against today. If the file's expiration date is today or later, the cache is fresh. If it's already past, the cache is expired and the next call re-renders.
+Compiled templates are automatically refreshed when the source view is newer. Use `clearCompiled()` after deployments that change compiler behavior or when you intentionally want a full rebuild.
 
-The granularity is **one day**. A TTL of `CACHE_AN_HOUR` and `CACHE_A_DAY` both pin the expiration to the same calendar date; the comment doesn't store the time of day. This is a deliberate simplification — it keeps the format human-readable and the comparison cheap.
-
-If you need finer-grained invalidation, call `Engine::clearStatics()` explicitly from your write paths (after a content update, for example).
-
-## Reading Static Files Directly
-
-If you have a pre-generated HTML file in the static directory and want to read it without involving the view engine at all, use `Engine::staticFile()`:
+To read a pre-generated file without rendering or cache validation:
 
 ```php
 $html = Engine::staticFile('marketing/about.html');
 ```
 
-It reads the raw file contents from the configured static directory. The path is checked against directory traversal (`..` segments that try to escape the static dir are rejected), but no parsing or processing is performed — you get back exactly what's on disk.
-
-A magic shortcut exists for the same call:
-
-```php
-$html = Engine::static('marketing/about.html');  // same thing
-```
-
-Both raise `ViewException` if the file doesn't exist or isn't readable.
-
-## Clearing Caches
-
-Two methods let you drop the disk caches:
-
-```php
-Engine::clearStatics();    // Remove all hybrid-cache static HTML files
-Engine::clearCompiled();   // Remove all compiled template files
-```
-
-Both only delete *files* in the configured directories — the directories themselves stay in place.
-
-Typical usage:
-
-- Run `clearStatics()` after deploying a content change you want to take effect immediately
-- Run `clearCompiled()` after deploying a change to a template file (though the engine also detects template mtime changes automatically and re-compiles, so this is mostly a belt-and-braces step)
-
-## A Realistic Example
-
-Here's an article page with a lazy factory and a per-slug cache:
-
-```php
-use Webrium\View\Engine;
-
-function renderArticle(string $slug): string
-{
-    return Engine::hybrid(
-        'pages/article',
-        ['article', $slug],
-        function () use ($slug) {
-            $article = Article::findBySlug($slug);
-            if (!$article) {
-                throw new NotFoundException();
-            }
-            return [
-                'title'   => $article->title,
-                'article' => $article,
-                'related' => Article::relatedTo($article, limit: 5),
-            ];
-        },
-        Engine::CACHE_A_DAY
-    );
-}
-```
-
-The factory only runs on cache miss, the database stays quiet on a hot article, and the only thing the request actually does is `file_get_contents()` on the static file. When the article is edited, your editor controller calls `Engine::clearStatics()` and the next request rebuilds.
+`staticFile()` returns the raw contents and rejects paths that escape the configured static directory.

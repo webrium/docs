@@ -9,6 +9,7 @@ Webrium View's layout system is built around three pieces:
 | `@section('name') ... @endsection` | Child view | Declares a named block of content |
 | `@yield('name', $default = '')` | Layout | Outputs the content of a named section |
 | `Engine::renderLayout()` | PHP code | Renders a child view inside a layout |
+| `Engine::renderLayoutWithSections()` | PHP code | Renders a layout from pre-rendered section strings |
 
 ## Basic Example
 
@@ -174,6 +175,21 @@ View::clearSections();
 | `View::renderWithLayout(string $view, string $layout, array $data = [])` | The underlying implementation of `renderLayout()` (note the parameter order is `view, layout` — opposite of `renderLayout`) |
 
 You'll rarely need any of these directly; they exist so that `@section` / `@endsection` / `@yield` have something to compile down to.
+
+To compose a layout from already-rendered sections, use the Engine facade:
+
+```php
+echo Engine::renderLayoutWithSections(
+    'layouts/main',
+    [
+        'title' => 'Article',
+        'content' => $renderedContent,
+    ],
+    ['currentUser' => $currentUser]
+);
+```
+
+This is especially useful with `Engine::hybridSection()`: the expensive content section can come from cache while the layout and its user-specific data are rendered for the current request. See [Hybrid Cache](hybrid-cache.md).
 
 ## Error Cases
 

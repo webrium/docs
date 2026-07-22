@@ -83,6 +83,7 @@ The view engine — a Blade-compatible templating system with hybrid static cach
 - [Layouts](template-engine/layouts.md)
 - [Components](template-engine/components.md)
 - [Hybrid Cache](template-engine/hybrid-cache.md)
+- [View Error Handling](template-engine/error-handling.md)
 - [Editor.js Integration](template-engine/editorjs.md)
 
 ### Console

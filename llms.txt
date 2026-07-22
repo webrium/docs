@@ -60,7 +60,8 @@ Each package — except Console — is independently usable in any PHP project.
 - [Control Flow](https://webrium.dev/docs/v5/template-engine/control-flow): attribute-based `w-if`, `w-for`, `w-skip`
 - [Layouts](https://webrium.dev/docs/v5/template-engine/layouts): `@section`, `@yield`, `renderLayout()`
 - [Components](https://webrium.dev/docs/v5/template-engine/components): reusable partials with `@component`
-- [Hybrid Cache](https://webrium.dev/docs/v5/template-engine/hybrid-cache): pre-rendered static cache with TTL
+- [Hybrid Cache](https://webrium.dev/docs/v5/template-engine/hybrid-cache): controller-level caching for views, layouts, sections, components, and arbitrary HTML
+- [View Error Handling](https://webrium.dev/docs/v5/template-engine/error-handling): source-mapped template exceptions and output-buffer cleanup
 - [Editor.js Integration](https://webrium.dev/docs/v5/template-engine/editorjs): turning Editor.js JSON into HTML
 
 ### Console (`webrium/console`)
