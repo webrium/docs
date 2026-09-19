@@ -6,7 +6,7 @@ Webrium runs on PHP 8.1+. A new project is created with `composer create-project
 
 The four packages and their roles:
 
-- **`webrium/core`** (`Webrium\` namespace) — routing, controllers, requests/responses, sessions, validation, file uploads, HTTP client, JWT, hashing, events, filesystem, localization, error handling
+- **`webrium/core`** (`Webrium\` namespace) — routing, controllers, requests/responses, sessions, validation, file uploads, HTTP client, JWT, hashing, events, filesystem, localization, error handling, task scheduling
 - **`webrium/foxdb`** (`Foxdb\` namespace — note: not `Webrium\Foxdb\`) — query builder, Eloquent-style ORM, schema builder, migrations, seeders; supports MySQL, PostgreSQL, and SQLite
 - **`webrium/view`** (`Webrium\View\` namespace) — Blade-compatible templating engine with hybrid static caching and Editor.js integration; compiles templates to plain PHP (no `eval`, no `DOMDocument`)
 - **`webrium/console`** (`Webrium\Console\` namespace) — the `webrium` CLI for scaffolding, migrations, plugins; framework-coupled, not standalone
@@ -40,6 +40,7 @@ Each package — except Console — is independently usable in any PHP project.
 - [Error Handling](https://webrium.dev/docs/v5/core/error-handling): unified handling of errors, exceptions, fatal shutdowns
 - [Helper Functions](https://webrium.dev/docs/v5/core/helper-functions): the complete reference of global helpers
 - [Kernel](https://webrium.dev/docs/v5/core/kernel): the framework's execution core (advanced)
+- [Task Scheduling](https://webrium.dev/docs/v5/core/task-scheduling): defining recurring tasks with `Schedule`, frequency options, naming, overlap locking
 
 ### Database (`webrium/foxdb`)
 
@@ -72,6 +73,7 @@ Each package — except Console — is independently usable in any PHP project.
 - [Database Management](https://webrium.dev/docs/v5/console/database-management): `db` and `table` commands
 - [Diagnostics](https://webrium.dev/docs/v5/console/diagnostics): `call` (invoke controller/model from CLI), `log` (manage log files)
 - [Plugins](https://webrium.dev/docs/v5/console/plugins): install, update, remove, create, and export plugin packages
+- [Task Scheduling](https://webrium.dev/docs/v5/console/task-scheduling): `make:schedule`, `schedule:run` (the cron entry point), `schedule:list`, `schedule:test`, `schedule:work` (local dev loop)
 
 ## Source Code
 
