@@ -1,6 +1,6 @@
 # Introduction
 
-**`webrium/core`** is the heart of the Webrium framework — and also a self-contained PHP library you can drop into any project. It provides routing, controllers, requests, responses, sessions, validation, file uploads, an HTTP client, JWT, hashing, events, localization, filesystem helpers, error handling, and a small set of global helper functions, with no required dependencies on the rest of the Webrium ecosystem.
+**`webrium/core`** is the heart of the Webrium framework — and also a self-contained PHP library you can drop into any project. It provides routing, controllers, requests, responses, sessions, validation, file uploads, an HTTP client, JWT, hashing, events, localization, filesystem helpers, error handling, task scheduling, and a small set of global helper functions, with no required dependencies on the rest of the Webrium ecosystem.
 
 You can use Core in two ways:
 
@@ -27,6 +27,7 @@ Whichever route you take, the APIs documented in the rest of this section are id
 | Filesystem | `Webrium\File`, `Webrium\Directory` | `root_path()`, `app_path()`, `storage_path()`, `public_path()` |
 | Localization | `Webrium\Lang` | `lang()`, `trans()` |
 | Error handling | `Webrium\Debug` | — |
+| Task scheduling | `Webrium\Schedule`, `Webrium\ScheduleEvent` | — |
 | Application bootstrap | `Webrium\App` | `env()` |
 
 All helper functions are defined inside `webrium/core` itself, so they are available the moment the package is installed — both in standalone projects and inside the full framework.
@@ -121,3 +122,4 @@ The rest of this section is organized roughly from most-used to most-advanced:
 - **Error Handling** — unified handling of errors, exceptions, and fatal shutdowns
 - **Helper Functions** — the complete reference of global helpers
 - **Kernel** — the framework's execution core (advanced)
+- **Task Scheduling** — defining recurring tasks in code instead of hand-edited crontabs

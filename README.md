@@ -12,7 +12,7 @@ Webrium is built around four small, focused packages that work together as a ful
 
 | Package | Purpose | Repository |
 | --- | --- | --- |
-| **`webrium/core`** | Routing, controllers, requests, responses, sessions, validation, uploads, HTTP client, JWT, hashing, events, error handling | [github.com/webrium/core](https://github.com/webrium/core) |
+| **`webrium/core`** | Routing, controllers, requests, responses, sessions, validation, uploads, HTTP client, JWT, hashing, events, error handling, task scheduling | [github.com/webrium/core](https://github.com/webrium/core) |
 | **`webrium/foxdb`** | Query builder, schema/migrations, ORM, relationships, collections, pagination | [github.com/webrium/foxdb](https://github.com/webrium/foxdb) |
 | **`webrium/view`** | Blade-compatible templating engine with hybrid static caching | [github.com/webrium/view](https://github.com/webrium/view) |
 | **`webrium/console`** | The `webrium` CLI for scaffolding, migrations, plugins, and more | [github.com/webrium/console](https://github.com/webrium/console) |
@@ -58,6 +58,7 @@ The framework's core: routing, controllers, requests, responses, sessions, valid
 - [Error Handling](core/error-handling.md)
 - [Helper Functions](core/helper-functions.md)
 - [Kernel](core/kernel.md)
+- [Task Scheduling](core/task-scheduling.md)
 
 ### Database
 
@@ -96,6 +97,7 @@ The `webrium` command-line toolkit — scaffolding, migrations, database managem
 - [Database Management](console/database-management.md)
 - [Diagnostics](console/diagnostics.md)
 - [Plugins](console/plugins.md)
+- [Task Scheduling](console/task-scheduling.md)
 
 ---
 

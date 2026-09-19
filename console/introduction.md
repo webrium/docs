@@ -1,6 +1,6 @@
 # Introduction
 
-**`webrium/console`** is the command-line toolkit that ships with the Webrium framework. It scaffolds files, runs migrations and seeders, manages databases, inspects logs, and installs distributable plugins — everything you'd otherwise do by hand or through ad-hoc scripts.
+**`webrium/console`** is the command-line toolkit that ships with the Webrium framework. It scaffolds files, runs migrations and seeders, manages databases, inspects logs, installs distributable plugins, and drives the task scheduler — everything you'd otherwise do by hand or through ad-hoc scripts.
 
 Unlike the other Webrium packages, **Console is framework-coupled**: it's designed specifically to work inside a Webrium project and is not intended to be used outside one. There is no standalone bootstrap section in this documentation because the binary handles bootstrap for you — when you create a new project with `composer create-project webrium/webrium`, the `webrium` CLI is already in place at the project root.
 
@@ -44,6 +44,7 @@ The commands group naturally into a few areas:
 | Database management | `db`, `table` | *Database Management* |
 | Diagnostics | `call`, `log` | *Diagnostics* |
 | Plugin system | `plugin:install`, `plugin:update`, `plugin:remove`, `plugin:list`, `plugin:info`, `plugin:new`, `plugin:export`, `plugin:config:compile` | *Plugins* |
+| Task scheduling | `make:schedule`, `schedule:run`, `schedule:list`, `schedule:test`, `schedule:work` | *Task Scheduling* |
 
 ## Conventions
 
@@ -68,3 +69,4 @@ This also means you can extend the CLI with your own commands using the same Sym
 - **Database Management** — list, create, drop, and inspect databases and tables
 - **Diagnostics** — call application code from the terminal, manage log files
 - **Plugins** — install, update, and create plugin packages
+- **Task Scheduling** — run, list, test, and locally develop scheduled tasks
