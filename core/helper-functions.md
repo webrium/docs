@@ -201,6 +201,26 @@ Render the appropriate `<script>`/`<link>` tags for Vite assets — the dev serv
 </head>
 ```
 
+## Debugging
+
+### `dump(mixed ...$vars): void`
+
+Pretty-print one or more values without stopping execution. On the CLI this is a plain `var_dump()`; anywhere else, each value is wrapped in a styled, HTML-escaped `<pre>` block (so a dumped string can never inject markup into the page).
+
+```php
+dump($user);
+dump($user, $request->all());
+```
+
+### `dd(mixed ...$vars): never`
+
+`dump()` plus `exit(1)` — dump one or more values and immediately stop execution ("dump and die"), so you're only ever looking at the one thing you dropped it next to.
+
+```php
+dd($user);           // inspect $user, request ends here
+dd($a, $b, $c);      // dump all three, then stop
+```
+
 ## Quick Reference Table
 
 | Function | Returns | Purpose |
@@ -227,3 +247,5 @@ Render the appropriate `<script>`/`<link>` tags for Vite assets — the dev serv
 | `env($name, $default)` | `mixed` | Get `.env` value |
 | `lang($key, $replacements)` | `string` | Translate a string |
 | `vite_assets($entry)` | `string` | Vite asset tags |
+| `dump(...$vars)` | `void` | Pretty-print values, keep running |
+| `dd(...$vars)` | `never` | Pretty-print values, then exit |

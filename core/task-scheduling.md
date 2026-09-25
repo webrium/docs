@@ -42,6 +42,15 @@ Schedule::call('send_daily_report')->dailyAt('01:00');
 
 Unlike route handlers, the `'Class@method'` string form here is **not** prefixed with any namespace — give the fully-qualified class name, since scheduled tasks are just as likely to call a service or a model as a controller.
 
+Both the array form and the `'Class@method'` string form work whether `method` is static or not — the class is instantiated for you with `new ClassName()` either way. There is no dependency container behind this, though, so it only works for a class with a **no-argument constructor**. If your service needs dependencies, construct it yourself and register the instance directly instead:
+
+```php
+$reportService = new ReportService($mailer, $renderer);
+Schedule::call([$reportService, 'generateDaily'])->dailyAt('01:00');
+```
+
+A class-name callback that needs constructor arguments fails fast with a clear `RuntimeException` pointing at this workaround, rather than a raw `ArgumentCountError`.
+
 ## Frequency Options
 
 `Schedule::call()` returns a `ScheduleEvent`, which exposes a fluent interval API:
@@ -68,6 +77,14 @@ Schedule::call($callback)->cron('*/15 9-17 * * 1-5'); // every 15 minutes, 9am-5
 ```
 
 The supported syntax per field (`minute hour day-of-month month day-of-week`, same order as standard cron) is `*`, `*/n` (step), `a-b` (range), `a-b/n` (stepped range), and `a,b,c` (list), in any combination. Day-of-week accepts both `0` and `7` for Sunday.
+
+**Day-of-month and day-of-week combine with OR when both are restricted** — matching standard cron. If you restrict only one of them (leave the other as `*`), it behaves as you'd expect on its own. But restrict *both* at once and the task is due when *either* matches, not only when both do:
+
+```php
+// Standard cron semantics: 9am on the 1st of the month, OR every Monday —
+// not only on the rare day that happens to be both at once.
+Schedule::call($callback)->cron('0 9 1 * 1');
+```
 
 ## Naming Tasks
 

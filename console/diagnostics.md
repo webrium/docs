@@ -66,14 +66,14 @@ For workflows that go beyond what `call` provides, write a dedicated CLI command
 php webrium log <action> [<name>]
 ```
 
-Manages log files in the configured logs directory. By default — when `Debug` logging is enabled — Webrium writes one log file per day, named with the date.
+Manages log files in the configured logs directory. Webrium writes one log file **per severity level, per day** (see *Core → Error Handling → Application Logging with `Logger`*) — e.g. `error_2026_09_25.txt`, `info_2026_09_25.txt` — so a given day can have several log files, one per level that actually logged something.
 
 ### Actions
 
 | Action | Effect |
 | --- | --- |
-| `list` | List all log files in the logs directory, most recent first |
-| `latest` | Display the most recent log file's contents |
+| `list` | List all log files in the logs directory |
+| `latest` | Display the most recently *modified* log file's contents (not necessarily the alphabetically-last name — an `error` file written a minute ago outranks an `info` file from this morning) |
 | `file <name>` | Display a specific log file by name |
 | `clear` | Delete every log file in the directory |
 
@@ -83,11 +83,11 @@ Manages log files in the configured logs directory. By default — when `Debug` 
 # What log files do we have?
 php webrium log list
 
-# Show today's (or the most recent) log file
+# Show whichever log file was written to most recently
 php webrium log latest
 
 # Show a specific file
-php webrium log file 2024-01-15.log
+php webrium log file error_2026_09_25.txt
 
 # Wipe the logs (intentional — there is no undo)
 php webrium log clear
@@ -95,8 +95,8 @@ php webrium log clear
 
 ### Notes
 
-- The directory inspected is the one registered as `logs` via `Directory::initDefaultStructure()` — typically `storage/logs/`. Configure it with `Debug::setLogPath()` if you've moved it.
+- The directory inspected is the one registered as `logs` via `Directory::initDefaultStructure()` — typically `storage/logs/`. Configure it with `Debug::setLogPath()` or `Logger::setLogPath()` if you've moved it — both point at the same directory.
 - `log clear` is destructive. There's no `--force` requirement and no confirmation prompt — the assumption is that you ran this command because you meant to.
-- For piping into other tools, `log file` writes plain text to standard output: `php webrium log file 2024-01-15.log | grep ERROR`.
+- For piping into other tools, `log file` writes plain text to standard output: `php webrium log file error_2026_09_25.txt | grep ERROR`.
 
 For more on how Webrium handles errors and writes log entries, see *Core → Error Handling*.
