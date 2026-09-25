@@ -63,7 +63,7 @@ php webrium plugin:info https://example.com/plugin.zip
 
 The installer can only copy new files into a project — it can't run arbitrary shell commands or edit files the project already has (an `npm install`, wiring a new Vite entry into an existing `vite.config.js`, adding a route to an existing route file). When a plugin needs any of that finished manually, it can tell the user so right after installing, via one of two optional manifest fields:
 
-- **`post_install_message`** — a literal string, shown verbatim.
+- **`post_install_message`** — a string, printed after install.
 - **`post_install_message_file`** — a `src` value that must match one of the plugin's own `files` entries. Its *installed* content (read fresh off disk, after copying) is shown instead of the literal message. Set both, and the file wins.
 
 ```json
@@ -73,7 +73,17 @@ The installer can only copy new files into a project — it can't run arbitrary 
 }
 ```
 
-A plugin that ships a whole markdown file this way (installed to the project root, or wherever makes sense) gets a second benefit for free: since the file is a real, ordinary project file, an AI coding assistant working in that project can read it and carry out the remaining steps itself — something a fixed set of install hooks can't do.
+A plugin that ships a whole markdown file this way (installed to the project root, or wherever makes sense) gets a second benefit for free: since the file is a real, ordinary project file, an AI coding assistant working in that project can read it and carry out the remaining steps itself — something a fixed set of install hooks can't do. That said, dumping an entire file into the terminal at the end of an install can be noisy — for most plugins, a short `post_install_message` pointing the user at the file (rather than the file's content itself) reads better.
+
+`post_install_message` is printed through the same command output as the rest of `plugin:install`, so it understands [Symfony Console's formatting tags](https://symfony.com/doc/current/console.html#coloring-the-output) — `<options=bold>`, `<fg=yellow>`, `<comment>`, and so on — and multi-line text via `\n`:
+
+```json
+{
+    "post_install_message": "<options=bold>Finish setup:</>\n\n  1. npm install\n  2. Wire vite.config.js\n\nSee <options=bold>SETUP.md</> for the exact diff."
+}
+```
+
+An unrecognized or malformed tag won't throw — it never breaks the install — but can render as garbled or unexpectedly-styled text rather than being cleanly stripped, so stick to tags you've verified render the way you expect. Well-formed tags degrade to plain, untagged text automatically when output isn't a real terminal (piped output, CI logs).
 
 Neither field is required. If both are absent, `plugin:install` just prints its normal one-line success message, exactly as before this feature existed.
 
