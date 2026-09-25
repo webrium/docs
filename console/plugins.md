@@ -59,6 +59,24 @@ php webrium plugin:info ./my-plugin.zip
 php webrium plugin:info https://example.com/plugin.zip
 ```
 
+## Post-Install Messages
+
+The installer can only copy new files into a project — it can't run arbitrary shell commands or edit files the project already has (an `npm install`, wiring a new Vite entry into an existing `vite.config.js`, adding a route to an existing route file). When a plugin needs any of that finished manually, it can tell the user so right after installing, via one of two optional manifest fields:
+
+- **`post_install_message`** — a literal string, shown verbatim.
+- **`post_install_message_file`** — a `src` value that must match one of the plugin's own `files` entries. Its *installed* content (read fresh off disk, after copying) is shown instead of the literal message. Set both, and the file wins.
+
+```json
+{
+    "post_install_message": null,
+    "post_install_message_file": "docs/NEXT-STEPS.md"
+}
+```
+
+A plugin that ships a whole markdown file this way (installed to the project root, or wherever makes sense) gets a second benefit for free: since the file is a real, ordinary project file, an AI coding assistant working in that project can read it and carry out the remaining steps itself — something a fixed set of install hooks can't do.
+
+Neither field is required. If both are absent, `plugin:install` just prints its normal one-line success message, exactly as before this feature existed.
+
 ## Managing Installed Plugins
 
 ### `plugin:list`
@@ -150,7 +168,9 @@ The generated template:
         "before_install": [],
         "after_install": []
     },
-    "meta": {}
+    "meta": {},
+    "post_install_message": null,
+    "post_install_message_file": null
 }
 ```
 
@@ -162,6 +182,7 @@ The fields:
 - **`sql`** — SQL files to execute on install (typically migrations or seed data that should run as part of installation).
 - **`hooks`** — arrays of script paths or shell commands to run before/after installation.
 - **`meta`** — free-form metadata you can attach.
+- **`post_install_message`** / **`post_install_message_file`** — shown to the user right after a successful `plugin:install` (see [Post-Install Messages](#post-install-messages) below).
 
 Edit the file by hand to add the files, SQL, and hooks your plugin needs, then export it.
 
