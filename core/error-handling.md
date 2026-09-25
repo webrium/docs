@@ -29,6 +29,34 @@ App::initialize(__DIR__ . '/..');
 
 If no log path is set, Webrium falls back to the directory registered as `logs` (via `Directory::path('logs')`), creating it if it does not exist.
 
+## Application Logging with `Logger`
+
+`Debug` decides *when* something is worth logging as an error; the actual file-writing is handled by a separate class, `Webrium\Logger`. `Debug::setLogPath()` above simply forwards to `Logger::setLogPath()` — both point at the same directory.
+
+Unlike `Debug`, `Logger` isn't tied to error handling at all — call it directly for anything your application wants recorded, at any of the eight standard severity levels:
+
+```php
+use Webrium\Logger;
+
+Logger::info('user exported a report', ['user_id' => $user->id]);
+Logger::warning('payment retried', ['order_id' => $order->id, 'attempt' => 2]);
+Logger::error('third-party API timed out');
+```
+
+| Method | Level |
+|---|---|
+| `Logger::emergency($message, $context = [])` | emergency |
+| `Logger::alert($message, $context = [])` | alert |
+| `Logger::critical($message, $context = [])` | critical |
+| `Logger::error($message, $context = [])` | error |
+| `Logger::warning($message, $context = [])` | warning |
+| `Logger::notice($message, $context = [])` | notice |
+| `Logger::info($message, $context = [])` | info |
+| `Logger::debug($message, $context = [])` | debug |
+| `Logger::log($level, $message, $context = [])` | any of the above, or a custom string |
+
+Each level writes to its own file, named `{level}_{Y_m_d}.txt` (e.g. `storage/logs/error_2026_09_25.txt`, `storage/logs/info_2026_09_25.txt`) — so an `error` and an `info` entry from the same day never land in the same file. `$context` is optional structured data, appended to the entry as JSON.
+
 ## JSON Error Responses
 
 For API-only applications, force errors to be returned as JSON instead of HTML:
